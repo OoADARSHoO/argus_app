@@ -1,9 +1,12 @@
+import 'package:flutter/widgets.dart';
+
 /// Spacing tokens for Argus desktop application.
 /// Based on an 8px base unit with defined standard increments.
 class AppSpacing {
   AppSpacing._();
 
   // Spacing scale
+  static const double s2 = 2.0;
   static const double s4 = 4.0;
   static const double s8 = 8.0;
   static const double s12 = 12.0;
@@ -25,5 +28,29 @@ class AppSpacing {
   static const double buttonPaddingHorizontal = 20.0;
   static const double inputPaddingVertical = 10.0;
   static const double inputPaddingHorizontal = 14.0;
+  static const double badgePaddingHorizontal = 8.0;
+  static const double badgePaddingVertical = 2.0;
   static const double layoutGutter = 24.0;
+
+  // Pre-constructed EdgeInsets instances
+  static const EdgeInsets buttonPadding = EdgeInsets.symmetric(
+    vertical: buttonPaddingVertical,
+    horizontal: buttonPaddingHorizontal,
+  );
+
+  static const EdgeInsets inputPadding = EdgeInsets.symmetric(
+    vertical: inputPaddingVertical,
+    horizontal: inputPaddingHorizontal,
+  );
+
+  static const EdgeInsets cardPaddingInsets = EdgeInsets.all(cardPadding);
+
+  static const EdgeInsets badgePadding = EdgeInsets.symmetric(
+    vertical: badgePaddingVertical,
+    horizontal: badgePaddingHorizontal,
+  );
+
+  static const EdgeInsets settingsRowPadding = EdgeInsets.symmetric(
+    vertical: s12,
+  );
 }

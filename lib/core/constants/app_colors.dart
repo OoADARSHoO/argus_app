@@ -39,6 +39,23 @@ class AppColors {
   static const Color accentPink = Color(0xFFF0507C);
   static const Color accentTeal = Color(0xFF22C3D6);
 
+  static const List<Color> accentColors = [
+    accentBlue,
+    accentPurple,
+    accentGreen,
+    accentOrange,
+    accentPink,
+    accentTeal,
+  ];
+
+  // Toggle switch inactive state
+  static const Color toggleInactive = Color(0xFF3F3F46);
+
+  // Utility colors
+  static const Color transparent = Colors.transparent;
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color black = Color(0xFF000000);
+
   // Active / Selected state background opacity (12% to 15%)
   static const double activeOpacity = 0.12;
 }

@@ -24,11 +24,33 @@ class AppDimensions {
   static const double iconButtonSize = 40.0;
   static const double inputHeight = 36.0;
   static const double dropdownHeight = 36.0;
+  static const double dropdownWidth = 140.0;
+  static const double multilineInputMinHeight = 72.0;
 
   // Toggle switch
   static const double toggleWidth = 44.0;
   static const double toggleHeight = 24.0;
+  static const double toggleKnobSize = 20.0;
+  static const double togglePadding = 2.0;
   static const Size toggleSize = Size(toggleWidth, toggleHeight);
+
+  // Settings Row
+  static const double settingsRowMinHeight = 64.0;
+
+  // Accent Swatch
+  static const double accentSwatchSize = 28.0;
+  static const double accentSwatchRingGap = 2.0;
+  static const double accentSwatchRingWidth = 2.0;
+  static const double accentSwatchTotalSize = 36.0;
+  static const double accentSwatchCheckSize = 14.0;
+
+  // Theme Option Card
+  static const double themeCardWidth = 104.0;
+  static const double themeCardHeight = 84.0;
+  static const double themeBadgeSize = 16.0;
+
+  // Borders
+  static const double borderWidth = 1.0;
 
   // Radius (cross-referenced for consistency)
   static const double cardRadius = 12.0;
@@ -40,6 +62,10 @@ class AppDimensions {
   // Progress rings
   static const double progressRingComponent = 120.0;
   static const double progressRingBreakScreen = 160.0;
+  static const double progressRingSupport = 200.0;
+  static const double progressRingStrokeWidthDefault = 10.0;
+  static const double progressRingStrokeWidthBreak = 12.0;
+  static const double progressRingStrokeWidthSupport = 16.0;
 
   // Badge
   static const double badgeHeight = 18.0;

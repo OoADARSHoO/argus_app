@@ -36,4 +36,5 @@ class AppRadius {
   static const BorderRadius buttonRadius = borderR6;
   static const BorderRadius inputRadius = borderR6;
   static const BorderRadius badgeRadius = borderR8;
+  static const BorderRadius toggleRadius = borderR12;
 }

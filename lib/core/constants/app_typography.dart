@@ -54,6 +54,53 @@ class AppTypography {
     color: AppColors.textSecondary,
   );
 
+  static const TextStyle bodySemibold = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 20 / 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle button = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 1.0,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle input = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 20 / 14,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle inputHint = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    height: 20 / 14,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0,
+    color: AppColors.textTertiary,
+  );
+
+  static const TextStyle badge = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 11,
+    height: 1.0,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    color: AppColors.primary,
+  );
+
   static const TextStyle caption = TextStyle(
     fontFamily: fontFamily,
     fontSize: 12,
