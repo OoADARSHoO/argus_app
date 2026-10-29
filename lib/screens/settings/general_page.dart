@@ -6,7 +6,9 @@ class GeneralPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('General Page')),
+      body: 
+      Center(child: Text('General Page')),
+      backgroundColor: Colors.black,
     );
   }
 }
