@@ -30,11 +30,14 @@ class AboutPage extends StatelessWidget {
           'Know more about the app.',
           style: AppTypography.caption,
         ),
-        const SizedBox(height: AppSpacing.s32),
+        const SizedBox(height: AppSpacing.s24),
 
-        // Centered branding & information
-        Center(
+        // Branding & information, horizontally centered but top-aligned.
+        // No vertical centering so the page starts at the same position as other tabs.
+        SizedBox(
+          width: double.infinity,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               // Large Eye Logo

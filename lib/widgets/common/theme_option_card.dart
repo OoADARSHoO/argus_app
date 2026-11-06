@@ -48,18 +48,23 @@ class ThemeOptionCard extends StatelessWidget {
         ),
       );
     } else {
-      // System (split half dark, half light)
-      return ClipRRect(
-        borderRadius: AppRadius.borderR4,
-        child: Row(
-          children: const [
-            Expanded(
-              child: ColoredBox(color: AppColors.background),
-            ),
-            Expanded(
-              child: ColoredBox(color: AppColors.textPrimary),
-            ),
-          ],
+      // System (split half dark, half light) with a thin border,
+      // same size as the Dark and Light previews.
+      return Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              AppColors.background,
+              AppColors.background,
+              AppColors.textPrimary,
+              AppColors.textPrimary,
+            ],
+            stops: [0.0, 0.5, 0.5, 1.0],
+          ),
+          borderRadius: AppRadius.borderR4,
+          border: Border.fromBorderSide(
+            BorderSide(color: AppColors.border, width: AppDimensions.borderWidth),
+          ),
         ),
       );
     }

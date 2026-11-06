@@ -34,7 +34,6 @@ class SidebarNav extends StatelessWidget {
 
     return Container(
       width: AppDimensions.sidebarWidth,
-      height: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(

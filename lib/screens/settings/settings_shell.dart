@@ -214,8 +214,11 @@ class _SettingsShellState extends State<SettingsShell> {
               ),
 
               // Main body area (Sidebar + Content)
+              // crossAxisAlignment.stretch ensures the content container starts
+              // right below the title bar with no extra vertical gap on any tab.
               Expanded(
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Sidebar navigation
                     SidebarNav(

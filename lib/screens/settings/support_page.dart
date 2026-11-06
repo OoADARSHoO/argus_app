@@ -38,11 +38,14 @@ class SupportPage extends StatelessWidget {
           'Your support keeps Argus alive.',
           style: AppTypography.caption,
         ),
-        const SizedBox(height: AppSpacing.s32),
+        const SizedBox(height: AppSpacing.s24),
 
-        // Centered donation progress ring
-        Center(
+        // Donation progress ring and actions, horizontally centered but top-aligned.
+        // No vertical centering so the page starts at the same position as other tabs.
+        SizedBox(
+          width: double.infinity,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               ProgressRing(
