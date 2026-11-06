@@ -6,6 +6,8 @@ import 'package:argus/screens/settings/appearance_page.dart';
 import 'package:argus/screens/settings/break_page.dart';
 import 'package:argus/screens/settings/general_page.dart';
 import 'package:argus/screens/settings/support_page.dart';
+import 'package:argus/services/settings_service.dart';
+import 'package:argus/services/window_service.dart';
 import 'package:argus/widgets/sidebar/sidebar_nav.dart';
 import 'package:argus/widgets/titlebar/custom_title_bar.dart';
 
@@ -16,7 +18,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ArgusApp());
+    final settingsService = SettingsService();
+    final windowService = WindowService();
+
+    await tester.pumpWidget(ArgusApp(
+      windowService: windowService,
+      settingsService: settingsService,
+    ));
     await tester.pumpAndSettle();
 
     // Verify Title Bar

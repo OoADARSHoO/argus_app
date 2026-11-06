@@ -8,7 +8,10 @@ import '../constants/app_typography.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get darkTheme {
+  /// Builds the dark theme with an optional custom accent color.
+  /// When [accentColor] is null, defaults to [AppColors.primary].
+  static ThemeData darkTheme({Color? accentColor}) {
+    final effectiveAccent = accentColor ?? AppColors.primary;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -16,8 +19,8 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.surface,
       dividerColor: AppColors.divider,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
+      colorScheme: ColorScheme.dark(
+        primary: effectiveAccent,
         onPrimary: AppColors.background,
         secondary: AppColors.primaryLight,
         onSecondary: AppColors.textPrimary,

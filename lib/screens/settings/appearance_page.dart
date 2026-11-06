@@ -3,11 +3,11 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../models/accent_color.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/common/accent_swatch.dart';
 import '../../widgets/common/app_dropdown.dart';
 import '../../widgets/common/settings_row.dart';
 import '../../widgets/common/theme_option_card.dart';
-import 'settings_shell.dart';
 
 /// Appearance settings page in Argus.
 /// Allows selecting themes, accent colors, and UI scaling.
@@ -17,17 +17,18 @@ class AppearancePage extends StatelessWidget {
     required this.settings,
   });
 
-  final TempSettingsState settings;
+  final SettingsService settings;
 
-  static const List<String> uiScaleOptions = [
-    '90%',
-    '100% (Default)',
-    '110%',
-    '125%',
+  static const List<MapEntry<int, String>> uiScaleOptions = [
+    MapEntry(90, '90%'),
+    MapEntry(100, '100% (Default)'),
+    MapEntry(110, '110%'),
+    MapEntry(125, '125%'),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final s = settings.settings.appearanceSettings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -52,23 +53,35 @@ class AppearancePage extends StatelessWidget {
             children: [
               ThemeOptionCard(
                 label: 'Dark',
-                isSelected: settings.selectedTheme == 'Dark',
-                accentColor: settings.selectedAccentColor,
-                onTap: () => settings.setSelectedTheme('Dark'),
+                isSelected: s.themeId == 'dark',
+                accentColor: settings.accentColor,
+                onTap: () => settings.update(
+                  settings.settings.copyWith(
+                    appearanceSettings: s.copyWith(themeId: 'dark'),
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.s12),
               ThemeOptionCard(
                 label: 'Light',
-                isSelected: settings.selectedTheme == 'Light',
-                accentColor: settings.selectedAccentColor,
-                onTap: () => settings.setSelectedTheme('Light'),
+                isSelected: s.themeId == 'light',
+                accentColor: settings.accentColor,
+                onTap: () => settings.update(
+                  settings.settings.copyWith(
+                    appearanceSettings: s.copyWith(themeId: 'light'),
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.s12),
               ThemeOptionCard(
                 label: 'System',
-                isSelected: settings.selectedTheme == 'System',
-                accentColor: settings.selectedAccentColor,
-                onTap: () => settings.setSelectedTheme('System'),
+                isSelected: s.themeId == 'system',
+                accentColor: settings.accentColor,
+                onTap: () => settings.update(
+                  settings.settings.copyWith(
+                    appearanceSettings: s.copyWith(themeId: 'system'),
+                  ),
+                ),
               ),
             ],
           ),
@@ -85,8 +98,12 @@ class AppearancePage extends StatelessWidget {
                 padding: const EdgeInsets.only(right: AppSpacing.s8),
                 child: AccentSwatch(
                   color: opt.color,
-                  isSelected: settings.selectedAccentColor == opt.color,
-                  onTap: () => settings.setSelectedAccentColor(opt.color),
+                  isSelected: s.accentId == opt.id,
+                  onTap: () => settings.update(
+                    settings.settings.copyWith(
+                      appearanceSettings: s.copyWith(accentId: opt.id),
+                    ),
+                  ),
                 ),
               );
             }).toList(),
@@ -98,14 +115,20 @@ class AppearancePage extends StatelessWidget {
           label: 'UI Scale',
           description: 'Adjust the size of UI elements',
           showDivider: false,
-          control: AppDropdown<String>(
-            value: settings.uiScale,
+          control: AppDropdown<int>(
+            value: s.uiScale,
             width: AppDimensions.dropdownWidth,
             items: uiScaleOptions
-                .map((opt) => AppDropdownItem(value: opt, label: opt))
+                .map((opt) => AppDropdownItem(value: opt.key, label: opt.value))
                 .toList(),
             onChanged: (val) {
-              if (val != null) settings.setUiScale(val);
+              if (val != null) {
+                settings.update(
+                  settings.settings.copyWith(
+                    appearanceSettings: s.copyWith(uiScale: val),
+                  ),
+                );
+              }
             },
           ),
         ),

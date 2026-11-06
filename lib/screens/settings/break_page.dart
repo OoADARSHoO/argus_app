@@ -4,12 +4,12 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/common/app_dropdown.dart';
 import '../../widgets/common/app_text_input.dart';
 import '../../widgets/common/app_toggle.dart';
 import '../../widgets/common/settings_row.dart';
 import '../../widgets/icons/app_icons.dart';
-import 'settings_shell.dart';
 
 /// Break customization settings page in Argus.
 /// Allows setting the break message, background screen, text color, font size, and progress ring.
@@ -19,18 +19,18 @@ class BreakPage extends StatelessWidget {
     required this.settings,
   });
 
-  final TempSettingsState settings;
+  final SettingsService settings;
 
-  static const List<String> backgroundOptions = [
-    'Black Screen',
-    'Dark Gray',
-    'Deep Blue',
+  static const List<MapEntry<String, String>> backgroundOptions = [
+    MapEntry('black_screen', 'Black Screen'),
+    MapEntry('dark_gray', 'Dark Gray'),
+    MapEntry('deep_blue', 'Deep Blue'),
   ];
 
-  static const List<String> fontSizeOptions = [
-    'Small',
-    'Medium',
-    'Large',
+  static const List<MapEntry<String, String>> fontSizeOptions = [
+    MapEntry('small', 'Small'),
+    MapEntry('medium', 'Medium'),
+    MapEntry('large', 'Large'),
   ];
 
   static const List<TextColorOption> textColorOptions = [
@@ -43,6 +43,7 @@ class BreakPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = settings.settings.breakSettings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,25 +64,35 @@ class BreakPage extends StatelessWidget {
           label: 'Break Message',
           description: 'Message shown during break',
           control: AppTextInput(
-            initialValue: settings.breakMessage,
+            initialValue: s.message,
             multiline: true,
             minLines: 3,
             maxLines: 4,
             width: AppDimensions.breakMessageInputWidth,
-            onChanged: (val) => settings.setBreakMessage(val),
+            onChanged: (val) => settings.update(
+              settings.settings.copyWith(
+                breakSettings: s.copyWith(message: val),
+              ),
+            ),
           ),
         ),
         SettingsRow(
           label: 'Background',
           description: 'What to show during break',
           control: AppDropdown<String>(
-            value: settings.breakBackground,
+            value: s.backgroundId,
             width: AppDimensions.dropdownWidth,
             items: backgroundOptions
-                .map((opt) => AppDropdownItem(value: opt, label: opt))
+                .map((opt) => AppDropdownItem(value: opt.key, label: opt.value))
                 .toList(),
             onChanged: (val) {
-              if (val != null) settings.setBreakBackground(val);
+              if (val != null) {
+                settings.update(
+                  settings.settings.copyWith(
+                    breakSettings: s.copyWith(backgroundId: val),
+                  ),
+                );
+              }
             },
           ),
         ),
@@ -89,22 +100,32 @@ class BreakPage extends StatelessWidget {
           label: 'Text Color',
           description: 'Color of the message',
           control: _TextColorPicker(
-            currentColor: settings.textColor,
+            currentColor: Color(s.textColor),
             options: textColorOptions,
-            onColorChanged: (c) => settings.setTextColor(c),
+            onColorChanged: (c) => settings.update(
+              settings.settings.copyWith(
+                breakSettings: s.copyWith(textColor: c.toARGB32()),
+              ),
+            ),
           ),
         ),
         SettingsRow(
           label: 'Font Size',
           description: 'Adjust message size',
           control: AppDropdown<String>(
-            value: settings.fontSize,
+            value: s.fontSizeId,
             width: AppDimensions.dropdownWidth,
             items: fontSizeOptions
-                .map((opt) => AppDropdownItem(value: opt, label: opt))
+                .map((opt) => AppDropdownItem(value: opt.key, label: opt.value))
                 .toList(),
             onChanged: (val) {
-              if (val != null) settings.setFontSize(val);
+              if (val != null) {
+                settings.update(
+                  settings.settings.copyWith(
+                    breakSettings: s.copyWith(fontSizeId: val),
+                  ),
+                );
+              }
             },
           ),
         ),
@@ -113,9 +134,13 @@ class BreakPage extends StatelessWidget {
           description: 'Display countdown ring',
           showDivider: false,
           control: AppToggle(
-            value: settings.showProgressRing,
-            accentColor: settings.selectedAccentColor,
-            onChanged: (val) => settings.setShowProgressRing(val),
+            value: s.showProgressRing,
+            accentColor: settings.accentColor,
+            onChanged: (val) => settings.update(
+              settings.settings.copyWith(
+                breakSettings: s.copyWith(showProgressRing: val),
+              ),
+            ),
           ),
         ),
       ],

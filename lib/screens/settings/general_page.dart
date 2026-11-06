@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/common/app_dropdown.dart';
 import '../../widgets/common/app_toggle.dart';
 import '../../widgets/common/settings_row.dart';
-import 'settings_shell.dart';
 
 /// General settings page in Argus.
 /// Allows configuring break intervals, durations, skipping, startup, and notifications.
@@ -15,27 +15,28 @@ class GeneralPage extends StatelessWidget {
     required this.settings,
   });
 
-  final TempSettingsState settings;
+  final SettingsService settings;
 
-  static const List<String> intervalOptions = [
-    '5 minutes',
-    '10 minutes',
-    '15 minutes',
-    '20 minutes',
-    '30 minutes',
-    '45 minutes',
-    '60 minutes',
+  static const List<MapEntry<int, String>> intervalOptions = [
+    MapEntry(5, '5 minutes'),
+    MapEntry(10, '10 minutes'),
+    MapEntry(15, '15 minutes'),
+    MapEntry(20, '20 minutes'),
+    MapEntry(30, '30 minutes'),
+    MapEntry(45, '45 minutes'),
+    MapEntry(60, '60 minutes'),
   ];
 
-  static const List<String> durationOptions = [
-    '10 seconds',
-    '20 seconds',
-    '30 seconds',
-    '60 seconds',
+  static const List<MapEntry<int, String>> durationOptions = [
+    MapEntry(10, '10 seconds'),
+    MapEntry(20, '20 seconds'),
+    MapEntry(30, '30 seconds'),
+    MapEntry(60, '60 seconds'),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final s = settings.settings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,28 +56,32 @@ class GeneralPage extends StatelessWidget {
         SettingsRow(
           label: 'Break Interval',
           description: 'Time between breaks',
-          control: AppDropdown<String>(
-            value: settings.breakInterval,
+          control: AppDropdown<int>(
+            value: s.breakIntervalMinutes,
             width: AppDimensions.dropdownWidth,
             items: intervalOptions
-                .map((opt) => AppDropdownItem(value: opt, label: opt))
+                .map((opt) => AppDropdownItem(value: opt.key, label: opt.value))
                 .toList(),
             onChanged: (val) {
-              if (val != null) settings.setBreakInterval(val);
+              if (val != null) {
+                settings.update(s.copyWith(breakIntervalMinutes: val));
+              }
             },
           ),
         ),
         SettingsRow(
           label: 'Break Duration',
           description: 'Length of each break',
-          control: AppDropdown<String>(
-            value: settings.breakDuration,
+          control: AppDropdown<int>(
+            value: s.breakDurationSeconds,
             width: AppDimensions.dropdownWidth,
             items: durationOptions
-                .map((opt) => AppDropdownItem(value: opt, label: opt))
+                .map((opt) => AppDropdownItem(value: opt.key, label: opt.value))
                 .toList(),
             onChanged: (val) {
-              if (val != null) settings.setBreakDuration(val);
+              if (val != null) {
+                settings.update(s.copyWith(breakDurationSeconds: val));
+              }
             },
           ),
         ),
@@ -84,27 +89,28 @@ class GeneralPage extends StatelessWidget {
           label: 'Skip Option',
           description: 'Allow skipping break with Esc key',
           control: AppToggle(
-            value: settings.skipOption,
-            accentColor: settings.selectedAccentColor,
-            onChanged: (val) => settings.setSkipOption(val),
+            value: s.skipEnabled,
+            accentColor: settings.accentColor,
+            onChanged: (val) => settings.update(s.copyWith(skipEnabled: val)),
           ),
         ),
         SettingsRow(
           label: 'Start on Windows Startup',
           description: 'Launch Argus when Windows starts',
           control: AppToggle(
-            value: settings.startOnStartup,
-            accentColor: settings.selectedAccentColor,
-            onChanged: (val) => settings.setStartOnStartup(val),
+            value: s.startOnStartup,
+            accentColor: settings.accentColor,
+            onChanged: (val) => settings.update(s.copyWith(startOnStartup: val)),
           ),
         ),
         SettingsRow(
           label: 'Show Notifications',
           description: 'Show reminder before break (10 sec before)',
           control: AppToggle(
-            value: settings.showNotifications,
-            accentColor: settings.selectedAccentColor,
-            onChanged: (val) => settings.setShowNotifications(val),
+            value: s.showNotifications,
+            accentColor: settings.accentColor,
+            onChanged: (val) =>
+                settings.update(s.copyWith(showNotifications: val)),
           ),
         ),
         SettingsRow(
@@ -112,9 +118,9 @@ class GeneralPage extends StatelessWidget {
           description: 'Play a soft sound before a break',
           showDivider: false,
           control: AppToggle(
-            value: settings.enableSounds,
-            accentColor: settings.selectedAccentColor,
-            onChanged: (val) => settings.setEnableSounds(val),
+            value: s.enableSounds,
+            accentColor: settings.accentColor,
+            onChanged: (val) => settings.update(s.copyWith(enableSounds: val)),
           ),
         ),
       ],

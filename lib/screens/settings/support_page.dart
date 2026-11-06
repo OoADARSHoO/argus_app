@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/common/progress_ring.dart';
 import '../../widgets/common/secondary_button.dart';
 import '../../widgets/icons/app_icons.dart';
-import 'settings_shell.dart';
 
 /// Support page in Argus.
 /// Displays the monthly community funding progress ring and donation actions.
@@ -16,7 +16,7 @@ class SupportPage extends StatelessWidget {
     required this.settings,
   });
 
-  final TempSettingsState settings;
+  final SettingsService settings;
 
   // Hardcoded local values for Phase 3 static UI
   static const double currentDonation = 128.0;
@@ -52,7 +52,7 @@ class SupportPage extends StatelessWidget {
                 value: progressFraction,
                 size: AppDimensions.progressRingSupport,
                 strokeWidth: AppDimensions.progressRingStrokeWidthSupport,
-                color: settings.selectedAccentColor,
+                color: settings.accentColor,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -70,7 +70,7 @@ class SupportPage extends StatelessWidget {
                     Text(
                       '64%',
                       style: AppTypography.bodySemibold.copyWith(
-                        color: settings.selectedAccentColor,
+                        color: settings.accentColor,
                       ),
                     ),
                   ],
@@ -89,7 +89,7 @@ class SupportPage extends StatelessWidget {
                   PrimaryButton(
                     label: 'Donate Now',
                     icon: AppIcons.heart,
-                    color: settings.selectedAccentColor,
+                    color: settings.accentColor,
                     onPressed: () {},
                   ),
                   const SizedBox(width: AppSpacing.s12),

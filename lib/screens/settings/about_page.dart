@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/icons/app_icons.dart';
-import 'settings_shell.dart';
 
 /// About page in Argus.
 /// Displays branding, version, description, legal links, and publisher copyright.
@@ -13,7 +13,7 @@ class AboutPage extends StatelessWidget {
     required this.settings,
   });
 
-  final TempSettingsState settings;
+  final SettingsService settings;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class AboutPage extends StatelessWidget {
               Icon(
                 AppIcons.eye,
                 size: 56,
-                color: settings.selectedAccentColor,
+                color: settings.accentColor,
               ),
               const SizedBox(height: AppSpacing.s12),
 
@@ -59,7 +59,7 @@ class AboutPage extends StatelessWidget {
               Text(
                 'Version 1.0.0',
                 style: AppTypography.caption.copyWith(
-                  color: settings.selectedAccentColor,
+                  color: settings.accentColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
