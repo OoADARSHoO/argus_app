@@ -1,18 +1,63 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:argus/app.dart';
-import 'package:argus/widgets/common/primary_button.dart';
-import 'package:argus/widgets/common/app_toggle.dart';
-import 'package:argus/widgets/common/progress_ring.dart';
+import 'package:argus/screens/settings/about_page.dart';
+import 'package:argus/screens/settings/appearance_page.dart';
+import 'package:argus/screens/settings/break_page.dart';
+import 'package:argus/screens/settings/general_page.dart';
+import 'package:argus/screens/settings/support_page.dart';
+import 'package:argus/widgets/sidebar/sidebar_nav.dart';
+import 'package:argus/widgets/titlebar/custom_title_bar.dart';
 
 void main() {
-  testWidgets('Smoke test: ArgusApp renders demo page and widgets', (WidgetTester tester) async {
+  testWidgets('Smoke test: SettingsShell renders titlebar, sidebar, and pages', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(const ArgusApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Phase 2: Shared Widgets Gallery'), findsOneWidget);
-    expect(find.byType(PrimaryButton), findsWidgets);
-    expect(find.byType(AppToggle), findsWidgets);
-    expect(find.byType(ProgressRing), findsWidgets);
+    // Verify Title Bar
+    expect(find.byType(CustomTitleBar), findsOneWidget);
+    expect(find.text('ARGUS'), findsWidgets);
+
+    // Verify Sidebar
+    expect(find.byType(SidebarNav), findsOneWidget);
+    expect(find.text('General'), findsWidgets);
+    expect(find.text('Break'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Support'), findsOneWidget);
+    expect(find.text('About'), findsOneWidget);
+
+    // Initial page is GeneralPage
+    expect(find.byType(GeneralPage), findsOneWidget);
+    expect(find.text('Break Interval'), findsOneWidget);
+    expect(find.text('Break Duration'), findsOneWidget);
+
+    // Switch to Break tab
+    await tester.tap(find.text('Break'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BreakPage), findsOneWidget);
+    expect(find.text('Break Message'), findsOneWidget);
+
+    // Switch to Appearance tab
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppearancePage), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
+
+    // Switch to Support tab
+    await tester.tap(find.text('Support'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SupportPage), findsOneWidget);
+    expect(find.text(r'$128 / $200'), findsOneWidget);
+
+    // Switch to About tab
+    await tester.tap(find.text('About'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AboutPage), findsOneWidget);
+    expect(find.text('Version 1.0.0'), findsOneWidget);
   });
 }
-

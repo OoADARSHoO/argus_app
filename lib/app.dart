@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'screens/demo/widget_demo_page.dart';
+import 'screens/settings/settings_shell.dart';
+import 'services/window_service.dart';
 
 /// Root widget for Argus desktop application.
-/// Sets up MaterialApp and dark theme.
-/// In Phase 2, home points to WidgetDemoPage for shared widget verification.
+/// Sets up MaterialApp, dark theme, and displays SettingsShell.
 class ArgusApp extends StatelessWidget {
-  const ArgusApp({super.key});
+  const ArgusApp({
+    super.key,
+    this.windowService = const WindowService(),
+  });
+
+  final WindowService windowService;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +19,7 @@ class ArgusApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Argus',
       theme: AppTheme.darkTheme,
-      home: const WidgetDemoPage(),
+      home: SettingsShell(windowService: windowService),
     );
   }
 }

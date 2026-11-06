@@ -12,12 +12,14 @@ class AppDimensions {
 
   // Title bar
   static const double titleBarHeight = 32.0;
+  static const double titleBarButtonWidth = 40.0;
 
   // Sidebar
   static const double sidebarWidth = 180.0;
   static const double sidebarItemWidth = 160.0;
   static const double sidebarItemHeight = 40.0;
   static const Size sidebarItemSize = Size(sidebarItemWidth, sidebarItemHeight);
+  static const double sidebarIconSize = 18.0;
 
   // Buttons & Controls
   static const double buttonHeight = 40.0;
@@ -26,6 +28,9 @@ class AppDimensions {
   static const double dropdownHeight = 36.0;
   static const double dropdownWidth = 140.0;
   static const double multilineInputMinHeight = 72.0;
+  static const double breakMessageInputWidth = 320.0;
+  static const double textColorSwatchWidth = 44.0;
+  static const double textColorSwatchHeight = 28.0;
 
   // Toggle switch
   static const double toggleWidth = 44.0;

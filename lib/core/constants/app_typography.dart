@@ -160,4 +160,13 @@ class AppTypography {
     letterSpacing: 1.0,
     color: AppColors.textPrimary,
   );
+
+  static const TextStyle titleBarWordmark = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 1.0,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 2.0,
+    color: AppColors.textPrimary,
+  );
 }
