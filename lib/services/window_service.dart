@@ -5,9 +5,17 @@ import '../core/constants/app_dimensions.dart';
 /// Service managing desktop window properties, frameless title bar,
 /// sizing, and window actions using [windowManager].
 class WindowService {
-  const WindowService();
+  /// Optional callback invoked when the user attempts to close the window
+  /// (X button or Alt+F4). Used to flush pending settings before hiding.
+  final void Function()? onCloseRequested;
+
+  const WindowService({this.onCloseRequested});
 
   /// Initializes the main settings window at 960x640, centered, frameless.
+  ///
+  /// Also enables prevent-close so that clicking X or pressing Alt+F4 does
+  /// not quit the app. Instead, [onWindowClose] hides the window to the tray
+  /// and the app keeps running (timer keeps ticking). Only "Exit Argus" quits.
   Future<void> initializeSettingsWindow() async {
     await windowManager.ensureInitialized();
 
@@ -27,6 +35,12 @@ class WindowService {
       await windowManager.show();
       await windowManager.focus();
     });
+
+    // Prevent the window from actually closing when the user clicks X or
+    // presses Alt+F4. Instead, we hide it to the tray and keep the app
+    // running. Only "Exit Argus" quits.
+    await windowManager.setPreventClose(true);
+    windowManager.addListener(_WindowListener(onCloseRequested: onCloseRequested));
   }
 
   /// Minimizes the application window.
@@ -34,8 +48,44 @@ class WindowService {
     await windowManager.minimize();
   }
 
-  /// Closes the application window (quits the app in Phase 3).
+  /// Closes the application window (quits the app).
   Future<void> close() async {
     await windowManager.close();
+  }
+
+  /// Hide the window to the tray without quitting. Called when the user
+  /// clicks X or Alt+F4. The app keeps running and the timer keeps ticking.
+  Future<void> hideToTray() async {
+    await windowManager.hide();
+  }
+
+  /// Show and focus the settings window. Restores if minimized.
+  Future<void> showAndFocus() async {
+    final isVisible = await windowManager.isVisible();
+    if (!isVisible) {
+      await windowManager.show();
+    }
+    // Restore from maximized state if needed so the window is usable.
+    final isMaximized = await windowManager.isMaximized();
+    if (isMaximized) {
+      await windowManager.restore();
+    }
+    await windowManager.focus();
+  }
+}
+
+/// Window listener that intercepts close attempts and hides the window
+/// instead of quitting.
+class _WindowListener extends WindowListener {
+  final void Function()? onCloseRequested;
+
+  _WindowListener({this.onCloseRequested});
+
+  @override
+  Future<void> onWindowClose() async {
+    // Notify the shell (e.g. to flush pending settings) before hiding.
+    onCloseRequested?.call();
+    // Hide instead of closing. The app stays in the tray and keeps running.
+    await windowManager.hide();
   }
 }

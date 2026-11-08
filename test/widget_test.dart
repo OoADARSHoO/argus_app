@@ -8,6 +8,7 @@ import 'package:argus/screens/settings/general_page.dart';
 import 'package:argus/screens/settings/support_page.dart';
 import 'package:argus/services/break_timer_service.dart';
 import 'package:argus/services/settings_service.dart';
+import 'package:argus/services/tray_service.dart';
 import 'package:argus/services/window_service.dart';
 import 'package:argus/widgets/sidebar/sidebar_nav.dart';
 import 'package:argus/widgets/titlebar/custom_title_bar.dart';
@@ -24,11 +25,17 @@ void main() {
     final breakTimerService = BreakTimerService(
       settingsService: settingsService,
     );
+    final trayService = TrayService(
+      settingsService: settingsService,
+      breakTimerService: breakTimerService,
+      windowService: windowService,
+    );
 
     await tester.pumpWidget(ArgusApp(
       windowService: windowService,
       settingsService: settingsService,
       breakTimerService: breakTimerService,
+      trayService: trayService,
     ));
     await tester.pumpAndSettle();
 

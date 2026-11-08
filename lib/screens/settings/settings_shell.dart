@@ -7,6 +7,7 @@ import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../services/break_timer_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/tray_service.dart';
 import '../../services/window_service.dart';
 import '../../utils/time_format.dart';
 import '../../widgets/sidebar/sidebar_nav.dart';
@@ -23,17 +24,20 @@ import 'support_page.dart';
 /// All settings are read from and written to [settingsService].
 /// The [breakTimerService] drives the 20-20-20 cycle and powers the
 /// temporary debug panel below.
+/// The [trayService] handles hide-to-tray and tray menu actions.
 class SettingsShell extends StatefulWidget {
   const SettingsShell({
     super.key,
     required this.windowService,
     required this.settingsService,
     required this.breakTimerService,
+    required this.trayService,
   });
 
   final WindowService windowService;
   final SettingsService settingsService;
   final BreakTimerService breakTimerService;
+  final TrayService trayService;
 
   @override
   State<SettingsShell> createState() => _SettingsShellState();
@@ -54,10 +58,11 @@ class _SettingsShellState extends State<SettingsShell> {
           backgroundColor: AppColors.background,
           body: Column(
             children: [
-              // Custom frameless Title Bar
+              // Custom frameless Title Bar.
+              // Close hides to tray instead of quitting (prevent-close is on).
               CustomTitleBar(
                 onMinimize: () => widget.windowService.minimize(),
-                onClose: () => widget.windowService.close(),
+                onClose: _hideToTray,
               ),
 
               // Main body area (Sidebar + Content)
@@ -103,6 +108,13 @@ class _SettingsShellState extends State<SettingsShell> {
     );
   }
 
+  /// Hide the settings window to the tray instead of quitting.
+  /// Flushes pending settings first so the last change is persisted.
+  Future<void> _hideToTray() async {
+    await widget.settingsService.flush();
+    await widget.windowService.hideToTray();
+  }
+
   Widget _buildCurrentPage() {
     final service = widget.settingsService;
     switch (_selectedTab) {
@@ -139,7 +151,7 @@ class _DebugTimerPanel extends StatelessWidget {
     if (phase == TimerPhase.paused) {
       final until = timer.pausedUntil;
       countdownText = until != null
-          ? 'Paused until ${until.hour.toString().padLeft(2, '0')}:${until.minute.toString().padLeft(2, '0')}'
+          ? 'Paused until ${_formatHm(until)}'
           : 'Paused';
     } else {
       final remaining = phase == TimerPhase.breakTime
@@ -224,6 +236,10 @@ class _DebugTimerPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _formatHm(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   Color _phaseColor(TimerPhase phase) {

@@ -3,6 +3,7 @@ import 'core/theme/app_theme.dart';
 import 'screens/settings/settings_shell.dart';
 import 'services/break_timer_service.dart';
 import 'services/settings_service.dart';
+import 'services/tray_service.dart';
 import 'services/window_service.dart';
 
 /// Root widget for Argus desktop application.
@@ -15,11 +16,13 @@ class ArgusApp extends StatelessWidget {
     required this.windowService,
     required this.settingsService,
     required this.breakTimerService,
+    required this.trayService,
   });
 
   final WindowService windowService;
   final SettingsService settingsService;
   final BreakTimerService breakTimerService;
+  final TrayService trayService;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +38,7 @@ class ArgusApp extends StatelessWidget {
             windowService: windowService,
             settingsService: settingsService,
             breakTimerService: breakTimerService,
+            trayService: trayService,
           ),
         );
       },
