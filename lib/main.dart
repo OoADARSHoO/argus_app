@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'app.dart';
+import 'services/break_timer_service.dart';
 import 'services/settings_service.dart';
 import 'services/window_service.dart';
 
 /// Entry point for Argus desktop application.
-/// Initializes the window, loads settings from disk, then runs the app.
+/// Initializes the window, loads settings, creates and starts the break timer,
+/// then runs the app.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -12,12 +14,19 @@ void main() async {
   await windowService.initializeSettingsWindow();
 
   // Create the settings service once and load from disk before runApp.
-  // The service is passed down through constructors — no global singleton.
   final settingsService = SettingsService();
   await settingsService.load();
+
+  // Create the break timer service once and start it.
+  // Both services are passed down through constructors — no global singleton.
+  final breakTimerService = BreakTimerService(
+    settingsService: settingsService,
+  );
+  breakTimerService.start();
 
   runApp(ArgusApp(
     windowService: windowService,
     settingsService: settingsService,
+    breakTimerService: breakTimerService,
   ));
 }

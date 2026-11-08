@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/settings/settings_shell.dart';
+import 'services/break_timer_service.dart';
 import 'services/settings_service.dart';
 import 'services/window_service.dart';
 
@@ -13,10 +14,12 @@ class ArgusApp extends StatelessWidget {
     super.key,
     required this.windowService,
     required this.settingsService,
+    required this.breakTimerService,
   });
 
   final WindowService windowService;
   final SettingsService settingsService;
+  final BreakTimerService breakTimerService;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +34,7 @@ class ArgusApp extends StatelessWidget {
           home: SettingsShell(
             windowService: windowService,
             settingsService: settingsService,
+            breakTimerService: breakTimerService,
           ),
         );
       },
