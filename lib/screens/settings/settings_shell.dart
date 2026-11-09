@@ -6,6 +6,7 @@ import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../services/break_timer_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/tray_service.dart';
 import '../../services/window_service.dart';
@@ -32,12 +33,14 @@ class SettingsShell extends StatefulWidget {
     required this.settingsService,
     required this.breakTimerService,
     required this.trayService,
+    required this.notificationService,
   });
 
   final WindowService windowService;
   final SettingsService settingsService;
   final BreakTimerService breakTimerService;
   final TrayService trayService;
+  final NotificationService notificationService;
 
   @override
   State<SettingsShell> createState() => _SettingsShellState();

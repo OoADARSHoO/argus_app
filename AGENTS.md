@@ -29,6 +29,7 @@ All visual values live in `lib/core/constants/` as tokens. **Never hardcode a co
   - `window_manager` for window size, frameless, always-on-top, fullscreen, prevent-close
   - `launch_at_startup` for starting with Windows
   - one outline icon package matching the blueprint's thin-stroke icons (Lucide style). Confirm the exact package name on pub.dev before adding.
+  - `local_notifier` for native Windows toast notifications (pre-break warning).
 - Settings are saved as JSON at `%APPDATA%\Argus\settings.json` using `dart:io` and `dart:convert` (no extra package).
 - Font: **Inter**, bundled in `assets/fonts/Inter/static/`. Use the `Inter_18pt-*.ttf` files only (Regular 400, Medium 500, SemiBold 600, Bold 700), registered in `pubspec.yaml` under family `Inter`. Do not use `google_fonts` (the app must work offline).
 - Run `flutter analyze` after every change and fix all errors and warnings before saying you're done.

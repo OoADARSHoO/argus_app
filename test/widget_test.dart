@@ -7,6 +7,7 @@ import 'package:argus/screens/settings/break_page.dart';
 import 'package:argus/screens/settings/general_page.dart';
 import 'package:argus/screens/settings/support_page.dart';
 import 'package:argus/services/break_timer_service.dart';
+import 'package:argus/services/notification_service.dart';
 import 'package:argus/services/settings_service.dart';
 import 'package:argus/services/tray_service.dart';
 import 'package:argus/services/window_service.dart';
@@ -30,12 +31,14 @@ void main() {
       breakTimerService: breakTimerService,
       windowService: windowService,
     );
+    final notificationService = NotificationService();
 
     await tester.pumpWidget(ArgusApp(
       windowService: windowService,
       settingsService: settingsService,
       breakTimerService: breakTimerService,
       trayService: trayService,
+      notificationService: notificationService,
     ));
     await tester.pumpAndSettle();
 
