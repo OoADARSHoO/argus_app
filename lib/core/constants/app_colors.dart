@@ -56,6 +56,24 @@ class AppColors {
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);
 
+  // Break screen background colors (Break settings: Black Screen / Dark Gray / Deep Blue)
+  static const Color breakBackgroundBlackScreen = Color(0xFF0E0E10);
+  static const Color breakBackgroundDarkGray = Color(0xFF1A1A1E);
+  static const Color breakBackgroundDeepBlue = Color(0xFF16213E);
+
+  /// Returns the break background color for the given background id.
+  static Color breakBackgroundForId(String id) {
+    switch (id) {
+      case 'dark_gray':
+        return breakBackgroundDarkGray;
+      case 'deep_blue':
+        return breakBackgroundDeepBlue;
+      case 'black_screen':
+      default:
+        return breakBackgroundBlackScreen;
+    }
+  }
+
   // Active / Selected state background opacity (12% to 15%)
   static const double activeOpacity = 0.12;
 }

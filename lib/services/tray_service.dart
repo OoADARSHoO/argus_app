@@ -51,33 +51,28 @@ class TrayService with TrayListener {
 
   @override
   void onTrayIconMouseDown() {
-    // TEMPORARY DEBUG
-    print('TRAY DEBUG: onTrayIconMouseDown fired');
     // Left click: show and focus the settings window.
     windowService.showAndFocus();
   }
 
   @override
   void onTrayIconRightMouseDown() {
-    // TEMPORARY DEBUG
-    print('TRAY DEBUG: onTrayIconRightMouseDown fired');
-    // Right click: rebuild the menu with the current countdown before
-    // showing it, so the label is always live.
-    print('TRAY DEBUG: calling _buildMenu() before popUpContextMenu');
+    // Right click: rebuild the menu with the current countdown, then pop it up.
+    // Note: on Windows both onTrayIconMouseDown and onTrayIconRightMouseDown
+    // fire for a right-click, so showAndFocus() is also called — this is
+    // harmless and the menu still appears.
     _buildMenu();
-    print('TRAY DEBUG: _buildMenu() returned');
+    trayManager.popUpContextMenu();
   }
 
   @override
   void onTrayIconRightMouseUp() {
-    // TEMPORARY DEBUG
-    print('TRAY DEBUG: onTrayIconRightMouseUp fired');
+    // No action needed on right-mouse-up.
   }
 
   @override
   void onTrayIconMouseUp() {
-    // TEMPORARY DEBUG
-    print('TRAY DEBUG: onTrayIconMouseUp fired');
+    // No action needed on left-mouse-up.
   }
 
   @override
@@ -141,9 +136,7 @@ class TrayService with TrayListener {
       ),
     ]);
 
-    print('TRAY DEBUG: about to call setContextMenu');
     await trayManager.setContextMenu(menu);
-    print('TRAY DEBUG: setContextMenu returned');
   }
 
   /// Format a DateTime as HH:mm for the "Paused until" label.

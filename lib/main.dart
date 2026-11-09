@@ -27,6 +27,23 @@ void main() async {
   );
   breakTimerService.start();
 
+  // Listen to timer phase transitions and switch window overlay mode.
+  // When the timer enters breakTime, the window goes fullscreen always-on-top
+  // and shows the break overlay. When it leaves breakTime, the window is
+  // restored to its pre-break state.
+  TimerPhase lastTimerPhase = TimerPhase.working;
+  breakTimerService.addListener(() {
+    final currentPhase = breakTimerService.phase;
+    if (lastTimerPhase != currentPhase) {
+      lastTimerPhase = currentPhase;
+      if (currentPhase == TimerPhase.breakTime) {
+        windowService.enterOverlayMode();
+      } else {
+        windowService.exitOverlayMode();
+      }
+    }
+  });
+
   // Create the tray service once and initialize it.
   final trayService = TrayService(
     settingsService: settingsService,
