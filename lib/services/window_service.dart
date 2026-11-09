@@ -19,10 +19,13 @@ class WindowService {
 
   /// Initializes the main settings window at 960x640, centered, frameless.
   ///
+  /// If [startHidden] is true (e.g. launched via `--autostart`), the window
+  /// starts hidden in the tray instead of showing and focusing.
+  ///
   /// Also enables prevent-close so that clicking X or pressing Alt+F4 does
   /// not quit the app. Instead, [onWindowClose] hides the window to the tray
   /// and the app keeps running (timer keeps ticking). Only "Exit Argus" quits.
-  Future<void> initializeSettingsWindow() async {
+  Future<void> initializeSettingsWindow({bool startHidden = false}) async {
     await windowManager.ensureInitialized();
 
     const windowOptions = WindowOptions(
@@ -38,8 +41,12 @@ class WindowService {
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setResizable(false);
-      await windowManager.show();
-      await windowManager.focus();
+      if (!startHidden) {
+        await windowManager.show();
+        await windowManager.focus();
+      } else {
+        await windowManager.hide();
+      }
     });
 
     // Prevent the window from actually closing when the user clicks X or

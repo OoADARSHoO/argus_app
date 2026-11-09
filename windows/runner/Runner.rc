@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.bitekoilabs" "\0"
-            VALUE "FileDescription", "argus" "\0"
+            VALUE "CompanyName", "Bitekoi Labs" "\0"
+            VALUE "FileDescription", "Argus" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "argus" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.bitekoilabs. All rights reserved." "\0"
-            VALUE "OriginalFilename", "argus.exe" "\0"
-            VALUE "ProductName", "argus" "\0"
+            VALUE "InternalName", "Argus" "\0"
+            VALUE "LegalCopyright", "(c) 2025 Bitekoi Labs" "\0"
+            VALUE "OriginalFilename", "Argus.exe" "\0"
+            VALUE "ProductName", "Argus" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

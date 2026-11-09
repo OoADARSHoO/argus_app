@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../main.dart';
 import '../services/break_timer_service.dart';
 import '../services/settings_service.dart';
 import '../services/window_service.dart';
@@ -178,6 +179,8 @@ class TrayService with TrayListener {
     await settingsService.flush();
     // Stop the break timer.
     breakTimerService.dispose();
+    // Release the single instance file lock on clean exit.
+    releaseSingleInstanceLock();
     // Remove the tray icon.
     await trayManager.destroy();
     // Quit the application.
