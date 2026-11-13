@@ -39,9 +39,6 @@ app.*.symbols
 # Velopack releases directory
 Releases/
 
-# Build artifacts (moved from outer root .gitignore)
-*.lock
-
 # Obfuscation related
 app.*.map.json
 
