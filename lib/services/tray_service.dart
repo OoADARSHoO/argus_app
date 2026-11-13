@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -209,5 +209,15 @@ class TrayService with TrayListener {
   /// Called when the app shuts down. Cancels the tooltip timer.
   void dispose() {
     _tooltipTimer?.cancel();
+  }
+
+  /// Destroy the tray icon. Called when the app is shutting down to apply an
+  /// update.
+  Future<void> destroy() async {
+    try {
+      await trayManager.destroy();
+    } catch (e) {
+      debugPrint('Failed to destroy tray icon: $e');
+    }
   }
 }

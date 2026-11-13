@@ -10,6 +10,7 @@ class AppSettings {
   final bool startOnStartup;
   final bool showNotifications;
   final bool enableSounds;
+  final bool autoUpdate;
   final BreakSettings breakSettings;
   final AppearanceSettings appearanceSettings;
 
@@ -20,6 +21,7 @@ class AppSettings {
     required this.startOnStartup,
     required this.showNotifications,
     required this.enableSounds,
+    required this.autoUpdate,
     required this.breakSettings,
     required this.appearanceSettings,
   });
@@ -31,6 +33,7 @@ class AppSettings {
     startOnStartup: true,
     showNotifications: true,
     enableSounds: false,
+    autoUpdate: true,
     breakSettings: BreakSettings.defaults,
     appearanceSettings: AppearanceSettings.defaults,
   );
@@ -42,6 +45,7 @@ class AppSettings {
     bool? startOnStartup,
     bool? showNotifications,
     bool? enableSounds,
+    bool? autoUpdate,
     BreakSettings? breakSettings,
     AppearanceSettings? appearanceSettings,
   }) {
@@ -52,6 +56,7 @@ class AppSettings {
       startOnStartup: startOnStartup ?? this.startOnStartup,
       showNotifications: showNotifications ?? this.showNotifications,
       enableSounds: enableSounds ?? this.enableSounds,
+      autoUpdate: autoUpdate ?? this.autoUpdate,
       breakSettings: breakSettings ?? this.breakSettings,
       appearanceSettings: appearanceSettings ?? this.appearanceSettings,
     );
@@ -67,6 +72,7 @@ class AppSettings {
         other.startOnStartup == startOnStartup &&
         other.showNotifications == showNotifications &&
         other.enableSounds == enableSounds &&
+        other.autoUpdate == autoUpdate &&
         other.breakSettings == breakSettings &&
         other.appearanceSettings == appearanceSettings;
   }
@@ -79,6 +85,7 @@ class AppSettings {
     startOnStartup,
     showNotifications,
     enableSounds,
+    autoUpdate,
     breakSettings,
     appearanceSettings,
   );
@@ -91,6 +98,7 @@ class AppSettings {
         'startOnStartup': startOnStartup,
         'showNotifications': showNotifications,
         'enableSounds': enableSounds,
+        'autoUpdate': autoUpdate,
         'breakSettings': breakSettings.toJson(),
         'appearanceSettings': appearanceSettings.toJson(),
       };
@@ -115,6 +123,7 @@ class AppSettings {
         showNotifications:
             _safeBool(json['showNotifications'], defaults.showNotifications),
         enableSounds: _safeBool(json['enableSounds'], defaults.enableSounds),
+        autoUpdate: _safeBool(json['autoUpdate'], defaults.autoUpdate),
         breakSettings: BreakSettings.fromJson(
           (json['breakSettings'] as Map<String, dynamic>?) ?? {},
         ),

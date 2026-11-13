@@ -58,7 +58,9 @@ The generated release artifacts are saved in the `Releases\` directory at the pr
 
 ---
 
-## 3. How to Test the Velopack Package Locally
+## 3. How to Test the Settings Window and Updater Locally
+
+### Test the Settings Window
 
 1. Run `.\scripts\package.ps1` to produce `Releases\ArgusSetup.exe`.
 2. Double-click `Releases\ArgusSetup.exe` to run the installer:
@@ -72,6 +74,30 @@ The generated release artifacts are saved in the `Releases\` directory at the pr
    - Check the Windows registry (`reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Argus`): it points to `%LOCALAPPDATA%\Argus\current\Argus.exe --autostart`.
    - Uninstall Argus from Windows Settings > Installed Apps.
    - Check the registry again: the `Argus` entry is cleanly removed.
+
+### Test Auto-Update Locally
+
+1. Build and package a new version:
+   - Bump the version in `argus_app\pubspec.yaml` (e.g. `1.0.1`).
+   - Run `.\scripts\package.ps1` to produce a new `Releases\Argus-1.0.1-full.nupkg`.
+2. Start a local HTTP server in the `Releases` folder:
+   ```powershell
+   cd Releases
+   python -m http.server 8000
+   ```
+3. Launch Argus with the override environment variable:
+   ```powershell
+   $env:ARGUS_UPDATE_URL="http://localhost:8000"
+   & "$env:LOCALAPPDATA\Argus\current\Argus.exe"
+   ```
+4. Open the Settings window, go to **About**, and click **Check for updates**.
+   - The status should change to `Update available: 1.0.1`.
+   - The button should change to `Restart to update`.
+   - A `Donate Now` notification should appear saying "Argus update ready. Open Settings > About to restart and install version 1.0.1."
+5. Click **Restart to update**:
+   - Argus should close and the updater should apply the new version.
+   - When Argus restarts, the About page should show `Version 1.0.1`.
+   - Your settings (break interval, theme, etc.) should be preserved.
 
 ---
 

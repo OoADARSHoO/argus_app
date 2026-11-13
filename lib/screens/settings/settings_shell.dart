@@ -9,6 +9,7 @@ import '../../services/break_timer_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/tray_service.dart';
+import '../../services/update_service.dart';
 import '../../services/window_service.dart';
 import '../../utils/time_format.dart';
 import '../../widgets/sidebar/sidebar_nav.dart';
@@ -34,6 +35,7 @@ class SettingsShell extends StatefulWidget {
     required this.breakTimerService,
     required this.trayService,
     required this.notificationService,
+    required this.updateService,
   });
 
   final WindowService windowService;
@@ -41,6 +43,7 @@ class SettingsShell extends StatefulWidget {
   final BreakTimerService breakTimerService;
   final TrayService trayService;
   final NotificationService notificationService;
+  final UpdateService updateService;
 
   @override
   State<SettingsShell> createState() => _SettingsShellState();
@@ -122,7 +125,7 @@ class _SettingsShellState extends State<SettingsShell> {
     final service = widget.settingsService;
     switch (_selectedTab) {
       case SettingsTab.general:
-        return GeneralPage(settings: service);
+        return GeneralPage(settings: service, updateService: widget.updateService);
       case SettingsTab.breakTab:
         return BreakPage(settings: service);
       case SettingsTab.appearance:
@@ -130,7 +133,7 @@ class _SettingsShellState extends State<SettingsShell> {
       case SettingsTab.support:
         return SupportPage(settings: service);
       case SettingsTab.about:
-        return AboutPage(settings: service);
+        return AboutPage(settings: service, updateService: widget.updateService);
     }
   }
 }

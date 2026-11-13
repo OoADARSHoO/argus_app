@@ -84,6 +84,7 @@ void main() {
         startOnStartup: false,
         showNotifications: false,
         enableSounds: true,
+        autoUpdate: true,
         breakSettings: BreakSettings(
           message: 'Custom break message.',
           backgroundId: 'deep_blue',
@@ -117,6 +118,7 @@ void main() {
         startOnStartup: true,
         showNotifications: true,
         enableSounds: false,
+        autoUpdate: true,
         breakSettings: BreakSettings.defaults,
         appearanceSettings: AppearanceSettings.defaults,
       );
@@ -154,6 +156,12 @@ void main() {
       expect(s.startOnStartup, true);
       expect(s.showNotifications, true);
       expect(s.enableSounds, false);
+      expect(s.autoUpdate, true);
+    });
+
+    test('autoUpdate defaults to true when missing', () {
+      final s = AppSettings.fromJson({'version': 1});
+      expect(s.autoUpdate, true);
     });
 
     test('unknown version returns defaults', () {

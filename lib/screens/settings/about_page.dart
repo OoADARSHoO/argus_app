@@ -3,6 +3,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../services/settings_service.dart';
+import '../../services/update_service.dart';
 import '../../widgets/icons/app_icons.dart';
 
 /// About page in Argus.
@@ -11,9 +12,11 @@ class AboutPage extends StatelessWidget {
   const AboutPage({
     super.key,
     required this.settings,
+    required this.updateService,
   });
 
   final SettingsService settings;
+  final UpdateService updateService;
 
   @override
   Widget build(BuildContext context) {
@@ -65,10 +68,18 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s4),
 
-              // Tagline
-              const Text(
-                '20-20-20 made simple.',
-                style: AppTypography.bodySecondary,
+              // Update status line
+              ListenableBuilder(
+                listenable: updateService,
+                builder: (context, _) {
+                  return Text(
+                    _statusText(updateService.status),
+                    style: AppTypography.caption.copyWith(
+                      color: settings.accentColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: AppSpacing.s24),
 
@@ -131,4 +142,24 @@ class AboutPage extends StatelessWidget {
       ],
     );
   }
-}
+
+  String _statusText(UpdateStatus status) {
+    switch (status) {
+      case UpdateStatus.idle:
+        return 'Up to date';
+      case UpdateStatus.checking:
+        return 'Checking for updates...';
+      case UpdateStatus.upToDate:
+        return 'Up to date';
+      case UpdateStatus.available:
+        return 'Update available: ${updateService.newVersion}';
+      case UpdateStatus.downloading:
+        return 'Downloading...';
+      case UpdateStatus.ready:
+        return 'Update ready';
+      case UpdateStatus.error:
+        return updateService.errorMessage ?? 'Couldn\'t check for updates';
+    }
+  }
+
+  }

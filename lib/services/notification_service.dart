@@ -42,4 +42,21 @@ class NotificationService {
       debugPrint('Failed to show break warning notification: $e');
     }
   }
+
+  /// Show the update-ready notification.
+  ///
+  /// [newVersion] is the version string of the available update.
+  /// Any failure is caught and [debugPrint]ed so a notification problem never
+  /// crashes the app.
+  void showUpdateReady(String newVersion) {
+    try {
+      final notification = LocalNotification(
+        title: 'Argus update ready',
+        body: 'Open Settings > About to restart and install version $newVersion.',
+      );
+      notification.show();
+    } catch (e) {
+      debugPrint('Failed to show update notification: $e');
+    }
+  }
 }

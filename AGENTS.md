@@ -32,8 +32,8 @@ All visual values live in `lib/core/constants/` as tokens. **Never hardcode a co
   - `local_notifier` for native Windows toast notifications (pre-break warning).
 - **Packaging & Updates:**
   - **Velopack** (`vpk` CLI tool) is the official packaging and deployment system. Builds produce `Releases\Argus-win-Setup.exe` and `.nupkg` packages. Installs per-user to `%LOCALAPPDATA%\Argus\current\Argus.exe`.
+  - **Argus update checking**: Argus optionally checks for updates via `https://github.com/OoADARSHoO/argus_app/releases/latest/download/releases.win.json`. This is controlled by the "Show Notifications" toggle on the General page and happens only when the app is installed via the Argus installer (not when running from `flutter run`). No network calls are made when the toggle is off or when running from source.
   - The repo is public on GitHub; releases are published on **GitHub Releases**.
-  - The app is currently fully offline, but an optional online update check via Velopack will be introduced in a future phase.
 - Settings are saved as JSON at `%APPDATA%\Argus\settings.json` using `dart:io` and `dart:convert` (no extra package).
 - Font: **Inter**, bundled in `assets/fonts/Inter/static/`. Use the `Inter_18pt-*.ttf` files only (Regular 400, Medium 500, SemiBold 600, Bold 700), registered in `pubspec.yaml` under family `Inter`. Do not use `google_fonts` (the app must work offline).
 - Run `flutter analyze` after every change and fix all errors and warnings before saying you're done.

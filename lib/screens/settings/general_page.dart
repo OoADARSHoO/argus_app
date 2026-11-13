@@ -3,6 +3,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../services/settings_service.dart';
+import '../../services/update_service.dart';
 import '../../widgets/common/app_dropdown.dart';
 import '../../widgets/common/app_toggle.dart';
 import '../../widgets/common/settings_row.dart';
@@ -13,9 +14,11 @@ class GeneralPage extends StatelessWidget {
   const GeneralPage({
     super.key,
     required this.settings,
+    required this.updateService,
   });
 
   final SettingsService settings;
+  final UpdateService updateService;
 
   static const List<MapEntry<int, String>> intervalOptions = [
     MapEntry(5, '5 minutes'),
@@ -121,6 +124,15 @@ class GeneralPage extends StatelessWidget {
             value: s.enableSounds,
             accentColor: settings.accentColor,
             onChanged: (val) => settings.update(s.copyWith(enableSounds: val)),
+          ),
+        ),
+        SettingsRow(
+          label: 'Check for updates automatically',
+          description: 'Checks GitHub for new versions of Argus',
+          control: AppToggle(
+            value: s.autoUpdate,
+            accentColor: settings.accentColor,
+            onChanged: (val) => settings.update(s.copyWith(autoUpdate: val)),
           ),
         ),
       ],

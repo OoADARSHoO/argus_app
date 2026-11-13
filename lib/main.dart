@@ -6,6 +6,7 @@ import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'services/startup_service.dart';
 import 'services/tray_service.dart';
+import 'services/update_service.dart';
 import 'services/window_service.dart';
 
 /// Exclusive file lock reference kept for the lifetime of the process.
@@ -154,6 +155,25 @@ void main(List<String> args) async {
   final notificationService = NotificationService();
   await notificationService.setup();
 
+  // Create the tray service once and initialize it.
+  final trayService = TrayService(
+    settingsService: settingsService,
+    breakTimerService: breakTimerService,
+    windowService: windowService,
+  );
+  await trayService.init();
+
+  // Create the update service once and start its periodic check timer.
+  final updateService = UpdateService(
+    settingsService: settingsService,
+    windowService: windowService,
+    breakTimerService: breakTimerService,
+    trayService: trayService,
+    notificationService: notificationService,
+    onExit: releaseSingleInstanceLock,
+  );
+  updateService.init();
+
   // Listen to timer phase transitions and switch window overlay mode.
   // When the timer enters breakTime, the window goes fullscreen always-on-top
   // and shows the break overlay. When it leaves breakTime, the window is
@@ -182,19 +202,12 @@ void main(List<String> args) async {
     lastPreBreakWarning = breakTimerService.preBreakWarning;
   });
 
-  // Create the tray service once and initialize it.
-  final trayService = TrayService(
-    settingsService: settingsService,
-    breakTimerService: breakTimerService,
-    windowService: windowService,
-  );
-  await trayService.init();
-
   runApp(ArgusApp(
     windowService: windowService,
     settingsService: settingsService,
     breakTimerService: breakTimerService,
     trayService: trayService,
     notificationService: notificationService,
+    updateService: updateService,
   ));
 }
