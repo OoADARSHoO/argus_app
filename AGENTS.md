@@ -31,7 +31,8 @@ All visual values live in `lib/core/constants/` as tokens. **Never hardcode a co
   - one outline icon package matching the blueprint's thin-stroke icons (Lucide style). Confirm the exact package name on pub.dev before adding.
   - `local_notifier` for native Windows toast notifications (pre-break warning).
 - **Packaging & Updates:**
-  - **Velopack** (`vpk` CLI tool) is the official packaging and deployment system. Builds produce `Releases\ArgusSetup.exe` and `.nupkg` packages. Installs per-user to `%LOCALAPPDATA%\Argus\current\Argus.exe`.
+  - **Velopack** (`vpk` CLI tool) is the official packaging and deployment system. Builds produce `Releases\Argus-win-Setup.exe` and `.nupkg` packages. Installs per-user to `%LOCALAPPDATA%\Argus\current\Argus.exe`.
+  - The repo is public on GitHub; releases are published on **GitHub Releases**.
   - The app is currently fully offline, but an optional online update check via Velopack will be introduced in a future phase.
 - Settings are saved as JSON at `%APPDATA%\Argus\settings.json` using `dart:io` and `dart:convert` (no extra package).
 - Font: **Inter**, bundled in `assets/fonts/Inter/static/`. Use the `Inter_18pt-*.ttf` files only (Regular 400, Medium 500, SemiBold 600, Bold 700), registered in `pubspec.yaml` under family `Inter`. Do not use `google_fonts` (the app must work offline).
@@ -230,7 +231,10 @@ Do only the phase you are asked to do.
 6. **System tray**: tray icon, live "Next break in", Pause / Settings / Exit, hide-to-tray on close.
 7. **Break overlay**: fullscreen overlay mode, Esc to skip, auto close, pre-break notification.
 8. **Startup + release**: launch at startup, app icon, `flutter build windows --release`, packaging notes.
-9. **Packaging (Velopack)**: local installer and release packaging with Velopack (`vpk pack`), lifecycle hooks in `main.dart`, startup path handling under `%LOCALAPPDATA%\Argus\current\Argus.exe`.
+9. **Overlay close fix**: break overlay closes when the countdown reaches 0; window exits overlay mode reliably (resizable/min-max constraints handled, safety-net timer for forced exit).
+10. **Velopack packaging**: local installer and release packaging with Velopack (`vpk pack`), lifecycle hooks in `main.dart`, startup path handling under `%LOCALAPPDATA%\Argus\current\Argus.exe`.
+11. **In-app updater**: check for updates at startup via Velopack and prompt to download/install.
+12. **GitHub Actions release workflow**: CI/CD pipeline that builds, packages, and publishes release artifacts to GitHub Releases.
 
 ## 10. Definition of done (every phase)
 
