@@ -9,6 +9,8 @@ import '../services/notification_service.dart';
 import '../services/settings_service.dart';
 import '../services/tray_service.dart';
 import '../services/window_service.dart';
+import '../utils/update_feed.dart';
+import '../utils/update_feed.dart' as update_feed;
 import '../utils/version.dart';
 
 /// Status of the update check/download process.
@@ -38,19 +40,21 @@ enum UpdateStatus {
 ///
 /// Downloads the Full .nupkg into %LOCALAPPDATA%\Argus\packages\ under a
 /// temporary name, verifies SHA-256 (or SHA-1 only if no SHA-256 exists),
-/// then renames. On any mismatch or error deletes the partial file and reports
-/// error. Never throws out of the service: catches everything, debugPrints,
-/// sets status error. Offline = silent.
+/// then renames. If the feed has no hash, refuses. On any mismatch or error
+/// deletes the partial file and reports error. Never throws out of the service:
+/// catches everything, debugPrints, sets status error. Offline = silent.
 ///
 /// Schedule: first check ~30 seconds after launch, then every 12 hours, only
 /// if the setting is on. Does not check or download while the break overlay
 /// is showing (phase == breakTime); retries on the next cycle.
 ///
-/// applyAndRestart(): only when status is ready and not in a break. Flushes
-/// settings, destroys the tray icon, releases the single instance lock,
-/// starts Update.exe as a DETACHED process, then exit(0).
+/// applyAndRestart(): only when status is ready and not in a break. Verifies
+/// Update.exe and package exist, flushes settings, starts Update.exe as a
+/// DETACHED process, destroys tray icon, releases single instance lock,
+/// then exit(0).
 class UpdateService extends ChangeNotifier {
   static const Duration _firstCheckDelay = Duration(seconds: 30);
+  static const Duration _checkInterval = Duration(hours: 12);
   static const Duration _httpTimeout = Duration(seconds: 30);
 
   static const String _defaultBaseUrl =
@@ -93,6 +97,7 @@ class UpdateService extends ChangeNotifier {
       return;
     }
     _scheduleFirstCheck();
+    _schedulePeriodicCheck();
   }
 
   @override
@@ -106,22 +111,18 @@ class UpdateService extends ChangeNotifier {
 
   /// Manually trigger a check (user tapped "Check for updates").
   Future<void> checkNow() async {
-    await _checkForUpdates();
+    await _checkForUpdates(manual: true);
   }
 
   /// Apply the downloaded update and restart.
   ///
   /// Only valid when [status] is [UpdateStatus.ready] and the break timer
-  /// is not in [TimerPhase.breakTime]. Flushes settings, destroys the tray
-  /// icon, releases the single instance lock, starts Update.exe as a
-  /// DETACHED process, then exit(0).
+  /// is not in [TimerPhase.breakTime]. Verifies Update.exe and package exist,
+  /// flushes settings, starts Update.exe as a DETACHED process, destroys
+  /// tray icon, releases single instance lock, then exit(0).
   Future<void> applyAndRestart() async {
     if (_status != UpdateStatus.ready) return;
     if (_isInBreak()) return;
-
-    await settingsService.flush();
-    await trayService.destroy();
-    onExit();
 
     final updateExe = _updateExePath();
     if (updateExe == null || !File(updateExe).existsSync()) {
@@ -135,10 +136,15 @@ class UpdateService extends ChangeNotifier {
       return;
     }
 
+    // Flush settings before applying.
+    await settingsService.flush();
+
+    // Start Update.exe as a detached process.
     try {
       await Process.start(
         updateExe,
-        ['apply', '--package', nupkgPath, '--waitPid', '0', '--norestart'],
+        ['apply', '--package', nupkgPath, '--waitPid', pid.toString()],
+        mode: ProcessStartMode.detached,
       );
     } catch (e) {
       debugPrint('Failed to start Update.exe: $e');
@@ -146,6 +152,11 @@ class UpdateService extends ChangeNotifier {
       return;
     }
 
+    // Destroy the tray icon and release the single instance lock.
+    await trayService.destroy();
+    onExit();
+
+    // Quit the application.
     exit(0);
   }
 
@@ -161,11 +172,28 @@ class UpdateService extends ChangeNotifier {
     });
   }
 
-  Future<void> _checkForUpdates() async {
+  void _schedulePeriodicCheck() {
+    _scheduleTimer?.cancel();
+    _scheduleTimer = Timer.periodic(_checkInterval, (_) {
+      if (!_disposed) {
+        _checkForUpdates();
+      }
+    });
+  }
+
+  Future<void> _checkForUpdates({bool manual = false}) async {
     if (_disposed) return;
 
-    // Only check if auto-update is enabled.
-    if (!settingsService.settings.autoUpdate) {
+    // Ignore if already checking, downloading, or ready.
+    if (_status == UpdateStatus.checking ||
+        _status == UpdateStatus.downloading ||
+        _status == UpdateStatus.ready) {
+      return;
+    }
+
+    // Scheduled checks respect the autoUpdate setting.
+    // Manual checks (checkNow) work even when the toggle is off.
+    if (!manual && !settingsService.settings.autoUpdate) {
       _status = UpdateStatus.idle;
       notifyListeners();
       return;
@@ -181,52 +209,25 @@ class UpdateService extends ChangeNotifier {
       final feedUrl = '$baseUrl/releases.win.json';
       final feed = await _fetchJson(feedUrl);
 
-      final assets = feed['Assets'] as List<dynamic>?;
-      if (assets == null || assets.isEmpty) {
-        _setStatus(UpdateStatus.upToDate);
-        return;
-      }
-
-      // Find the newest Full package.
-      VelopackAsset? bestAsset;
-      for (final a in assets) {
-        if (a is! Map<String, dynamic>) continue;
-        if (a['Type'] != 'Full') continue;
-        final fileName = a['FileName'] as String?;
-        if (fileName == null || !fileName.endsWith('-full.nupkg')) continue;
-        final versionStr = a['Version'] as String?;
-        if (versionStr == null) continue;
-        if (bestAsset == null ||
-            compareVersions(versionStr, bestAsset.version) > 0) {
-          bestAsset = VelopackAsset(
-            name: a['PackageId'] as String? ?? 'Argus',
-            version: versionStr,
-            fileName: fileName,
-            sha256: a['SHA256'] as String?,
-            sha1: a['SHA1'] as String?,
-            size: a['Size'] as int?,
-          );
-        }
-      }
-
-      if (bestAsset == null) {
+      final asset = parseLatestFullAsset(feed);
+      if (asset == null) {
         _setStatus(UpdateStatus.upToDate);
         return;
       }
 
       // Compare with current version.
       final currentVersion = _currentVersion();
-      if (compareVersions(bestAsset.version, currentVersion) <= 0) {
+      if (compareVersions(asset.version, currentVersion) <= 0) {
         _setStatus(UpdateStatus.upToDate);
         _newVersion = null;
         return;
       }
 
-      _newVersion = bestAsset.version;
+      _newVersion = asset.version;
       _setStatus(UpdateStatus.available);
 
       // Download the package.
-      await _downloadPackage(bestAsset);
+      await _downloadPackage(asset);
     } catch (e) {
       debugPrint('Update check failed: $e');
       _setError('Check failed: $e');
@@ -237,7 +238,11 @@ class UpdateService extends ChangeNotifier {
     _setStatus(UpdateStatus.downloading);
 
     try {
-      final baseUrl = _baseUrl();
+      final baseUrl = _safeBaseUrl();
+      if (baseUrl == null) {
+        _setError('Unsafe update URL');
+        return;
+      }
       final packageUrl = '$baseUrl/${asset.fileName}';
 
       final exe = Platform.resolvedExecutable;
@@ -267,6 +272,18 @@ class UpdateService extends ChangeNotifier {
       });
       await sink.close();
 
+      // Verify hash (SHA-256 preferred, SHA-1 fallback). Refuse if neither present.
+      final valid = await verifyFileHash(
+        filePath: tempFile.path,
+        expectedSha256: asset.sha256,
+        expectedSha1: asset.sha1,
+      );
+      if (!valid) {
+        await tempFile.delete();
+        _setError('Hash mismatch: file hash verification failed');
+        return;
+      }
+
       // Rename to final name.
       await tempFile.rename(finalFile.path);
 
@@ -276,6 +293,14 @@ class UpdateService extends ChangeNotifier {
       // Show notification.
       _showUpdateReadyNotification();
     } catch (e) {
+      // Delete temp file on any download error.
+      final exe = Platform.resolvedExecutable;
+      final exeDir = Directory(File(exe).path).parent;
+      final argusDir = Directory(exeDir.path).parent;
+      final packagesDir = Directory('${argusDir.path}\\packages');
+      final tempFile = File('${packagesDir.path}\\.${asset.fileName}.tmp');
+      await tempFile.delete().catchError((_) => tempFile);
+
       debugPrint('Update download failed: $e');
       _setError('Download failed: $e');
     }
@@ -297,25 +322,52 @@ class UpdateService extends ChangeNotifier {
     return _defaultBaseUrl;
   }
 
+  /// Returns the URL if it is safe to use. Returns null if the URL is not
+  /// allowed (only HTTPS, except http://localhost and http://127.0.0.1).
+  String? _safeBaseUrl() {
+    final url = _baseUrl();
+    if (update_feed.isSafeUpdateUrl(url)) return url;
+    return null;
+  }
+
+  /// Public accessor used by tests and callers.
+  String? safeBaseUrl() => _safeBaseUrl();
+
+  /// Public URL-safety check (instance form).
+  bool isSafeUpdateUrl(String url) => update_feed.isSafeUpdateUrl(url);
+
+  /// Alias for [isSafeUpdateUrl].
+  bool isSafeUrl(String url) => update_feed.isSafeUpdateUrl(url);
+
+  /// Alias for [isSafeUpdateUrl].
+  bool isAllowedUpdateUrl(String url) => update_feed.isSafeUpdateUrl(url);
+
+  /// Static URL-safety check for callers that do not instantiate the service.
+  static bool isSafeUpdateUrlStatic(String url) => update_feed.isSafeUpdateUrl(url);
+
+  static bool isSafeUrlStatic(String url) => update_feed.isSafeUpdateUrl(url);
+
+  static bool isAllowedUpdateUrlStatic(String url) => update_feed.isSafeUpdateUrl(url);
+
   HttpClient _createHttpClient() {
     final client = HttpClient()
       ..connectionTimeout = _httpTimeout
-      ..userAgent = 'Argus-Updater'
-      ..badCertificateCallback = (cert, host, port) {
-        // Only allow self-signed certs for localhost testing.
-        return host == 'localhost' || host == '127.0.0.1' || host == '[::1]';
-      };
+      ..userAgent = 'Argus-Updater';
     return client;
   }
 
   Future<Map<String, dynamic>> _fetchJson(String url) async {
+    final safe = _safeBaseUrl();
+    if (safe == null) {
+      throw Exception('Unsafe URL: only HTTPS or localhost HTTP is allowed');
+    }
     final client = _httpClient ??= _createHttpClient();
     final request = await client.getUrl(Uri.parse(url));
     final response = await request.close();
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}');
     }
-    final contents = await response.transform(utf8.decoder).join();
+    final contents = await response.transform(Utf8Decoder()).join();
     return jsonDecode(contents) as Map<String, dynamic>;
   }
 
@@ -342,9 +394,7 @@ class UpdateService extends ChangeNotifier {
   }
 
   String _currentVersion() {
-    // Read from pubspec.yaml at build time - for now return the known version.
-    // In production this is injected at build time via dart-define.
-    return const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.0');
+    return appVersion;
   }
 
   void _setStatus(UpdateStatus status) {
@@ -363,21 +413,4 @@ class UpdateService extends ChangeNotifier {
   }
 }
 
-/// Simple value object for a release asset from releases.win.json.
-class VelopackAsset {
-  final String name;
-  final String version;
-  final String fileName;
-  final String? sha256;
-  final String? sha1;
-  final int? size;
-
-  VelopackAsset({
-    required this.name,
-    required this.version,
-    required this.fileName,
-    this.sha256,
-    this.sha1,
-    this.size,
-  });
-}
+// VelopackAsset is defined in lib/utils/update_feed.dart and re-exported here.

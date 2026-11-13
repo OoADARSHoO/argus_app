@@ -91,6 +91,6 @@ void main() {
     await tester.tap(find.text('About'));
     await tester.pumpAndSettle();
     expect(find.byType(AboutPage), findsOneWidget);
-    expect(find.text('Version 1.0.0'), findsOneWidget);
+    expect(find.text('Version 0.0.0'), findsOneWidget);
   });
 }

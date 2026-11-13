@@ -8,7 +8,7 @@ Argus is a **Windows-only desktop app** that enforces the 20-20-20 eye-rest rule
 
 - Tagline: "Your eyes. Our watch."
 - Publisher: Bitekoi Labs
-- Version: 1.0.0 (MVP)
+- Version: 0.1.15 (MVP)
 - The owner is a beginner Flutter developer. **Write simple, readable, well-commented code. Prefer boring and obvious over clever.**
 
 ## 2. Source of truth for design
@@ -32,7 +32,7 @@ All visual values live in `lib/core/constants/` as tokens. **Never hardcode a co
   - `local_notifier` for native Windows toast notifications (pre-break warning).
 - **Packaging & Updates:**
   - **Velopack** (`vpk` CLI tool) is the official packaging and deployment system. Builds produce `Releases\Argus-win-Setup.exe` and `.nupkg` packages. Installs per-user to `%LOCALAPPDATA%\Argus\current\Argus.exe`.
-  - **Argus update checking**: Argus optionally checks for updates via `https://github.com/OoADARSHoO/argus_app/releases/latest/download/releases.win.json`. This is controlled by the "Show Notifications" toggle on the General page and happens only when the app is installed via the Argus installer (not when running from `flutter run`). No network calls are made when the toggle is off or when running from source.
+  - **Argus update checking**: Argus optionally checks for updates via `https://github.com/OoADARSHoO/argus_app/releases/latest/download/releases.win.json`. This is controlled by the "Check for updates automatically" toggle on the General page and happens only when the app is installed via the Argus installer (not when running from `flutter run`). No network calls are made when the toggle is off or when running from source.
   - The repo is public on GitHub; releases are published on **GitHub Releases**.
 - Settings are saved as JSON at `%APPDATA%\Argus\settings.json` using `dart:io` and `dart:convert` (no extra package).
 - Font: **Inter**, bundled in `assets/fonts/Inter/static/`. Use the `Inter_18pt-*.ttf` files only (Regular 400, Medium 500, SemiBold 600, Bold 700), registered in `pubspec.yaml` under family `Inter`. Do not use `google_fonts` (the app must work offline).
@@ -151,7 +151,7 @@ General, Break, Appearance, Support, About. Custom frameless title bar: "ARGUS" 
 - Buttons: "Donate Now" (primary) and "Learn More" (secondary). For now they can do nothing or open a placeholder URL in the default browser.
 
 **About**
-- Eye logo, "ARGUS", "Version 1.0.0", "20-20-20 made simple."
+- Eye logo, "ARGUS", "Version $appVersion", "20-20-20 made simple."
 - Description: "Argus helps you follow the 20-20-20 rule by blocking your screen for 20 seconds every 20 minutes so you can rest your eyes, refocus, and stay productive."
 - Links: Privacy Policy, Terms of Use
 - Footer: "© 2025 BITEKOI LABS. All rights reserved."

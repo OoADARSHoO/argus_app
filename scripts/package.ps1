@@ -48,7 +48,7 @@ $pubspecContent = Get-Content $pubspecPath -Raw
 if ($pubspecContent -match '(?m)^version:\s+(\d+\.\d+\.\d+)') {
     $version = $Matches[1]
 } else {
-    Write-Error "Could not parse version from pubspec.yaml. Expected a line like: version: 1.0.0+1"
+    Write-Error "Could not parse version from pubspec.yaml. Expected a line like: version: 0.1.15+1"
     exit 1
 }
 
@@ -61,7 +61,7 @@ Write-Host "`n[2/4] Building Flutter Windows release..." -ForegroundColor Cyan
 
 Push-Location $repoRoot
 try {
-    & flutter build windows --release
+    & flutter build windows --release --dart-define=APP_VERSION=$version
     if ($LASTEXITCODE -ne 0) {
         Write-Error "flutter build windows --release failed (exit code $LASTEXITCODE)"
         exit 1

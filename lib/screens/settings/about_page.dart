@@ -4,6 +4,9 @@ import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../services/settings_service.dart';
 import '../../services/update_service.dart';
+import '../../utils/version.dart';
+import '../../widgets/common/primary_button.dart';
+import '../../widgets/common/secondary_button.dart';
 import '../../widgets/icons/app_icons.dart';
 
 /// About page in Argus.
@@ -60,7 +63,7 @@ class AboutPage extends StatelessWidget {
 
               // Version badge
               Text(
-                'Version 1.0.0',
+                'Version $appVersion',
                 style: AppTypography.caption.copyWith(
                   color: settings.accentColor,
                   fontWeight: FontWeight.w600,
@@ -68,17 +71,55 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s4),
 
+              // Tagline
+              const Text(
+                '20-20-20 made simple.',
+                style: AppTypography.bodySecondary,
+              ),
+              const SizedBox(height: AppSpacing.s4),
+
               // Update status line
               ListenableBuilder(
                 listenable: updateService,
                 builder: (context, _) {
+                  final status = updateService.status;
+                  if (status == UpdateStatus.idle) {
+                    return const SizedBox.shrink();
+                  }
                   return Text(
-                    _statusText(updateService.status),
+                    _statusText(updateService),
                     style: AppTypography.caption.copyWith(
                       color: settings.accentColor,
                       fontWeight: FontWeight.w600,
                     ),
                   );
+                },
+              ),
+              const SizedBox(height: AppSpacing.s16),
+
+              // Update button
+              ListenableBuilder(
+                listenable: updateService,
+                builder: (context, _) {
+                  final status = updateService.status;
+                  if (status == UpdateStatus.ready) {
+                    return PrimaryButton(
+                      label: 'Restart to update',
+                      onPressed: () async {
+                        await updateService.applyAndRestart();
+                      },
+                    );
+                  } else {
+                    return SecondaryButton(
+                      label: 'Check for updates',
+                      onPressed: status == UpdateStatus.checking ||
+                              status == UpdateStatus.downloading
+                          ? null
+                          : () async {
+                              await updateService.checkNow();
+                            },
+                    );
+                  }
                 },
               ),
               const SizedBox(height: AppSpacing.s24),
@@ -143,10 +184,10 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  String _statusText(UpdateStatus status) {
-    switch (status) {
+  String _statusText(UpdateService updateService) {
+    switch (updateService.status) {
       case UpdateStatus.idle:
-        return 'Up to date';
+        return 'Updates not available in this build';
       case UpdateStatus.checking:
         return 'Checking for updates...';
       case UpdateStatus.upToDate:
@@ -161,5 +202,4 @@ class AboutPage extends StatelessWidget {
         return updateService.errorMessage ?? 'Couldn\'t check for updates';
     }
   }
-
-  }
+}
