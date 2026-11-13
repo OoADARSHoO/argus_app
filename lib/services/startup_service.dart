@@ -6,10 +6,12 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 ///
 /// Plain class, created once in [main.dart].
 ///
-/// WARNING FOR DEVELOPMENT:
+/// WARNING FOR DEVELOPMENT / PACKAGING:
 /// When running with `flutter run`, `Platform.resolvedExecutable` resolves to
 /// the debug executable (e.g. `build\windows\x64\runner\Debug\Argus.exe`).
-/// In production/release, it resolves to the installed `Argus.exe`.
+/// In production when installed via Velopack, it resolves to the stable installed
+/// path `%LOCALAPPDATA%\Argus\current\Argus.exe`, ensuring the Windows startup
+/// registry key points to the current active release.
 class StartupService {
   static const String _appName = 'Argus';
   static const String autostartArg = '--autostart';

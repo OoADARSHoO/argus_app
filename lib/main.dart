@@ -56,13 +56,54 @@ void releaseSingleInstanceLock() {
   }
 }
 
+/// Checks and handles Velopack installation lifecycle hooks:
+/// `--veloapp-install`, `--veloapp-updated`, `--veloapp-obsolete`, `--veloapp-uninstall`.
+///
+/// Velopack invokes the application executable with these command-line arguments
+/// during setup, update, or uninstall operations.
+/// We must perform any required lifecycle actions and immediately exit(0) without
+/// acquiring the single-instance lock or displaying any UI.
+Future<void> _handleVelopackHooks(List<String> args) async {
+  const veloCommands = [
+    '--veloapp-install',
+    '--veloapp-updated',
+    '--veloapp-obsolete',
+    '--veloapp-uninstall',
+  ];
+
+  final hasVeloHook = veloCommands.any((cmd) => args.contains(cmd));
+  if (!hasVeloHook) {
+    return;
+  }
+
+  // If the app is being uninstalled, remove the Windows startup registry entry
+  // previously created by StartupService.
+  if (args.contains('--veloapp-uninstall')) {
+    try {
+      final startupService = StartupService();
+      startupService.setup();
+      await startupService.syncWithSetting(false);
+    } catch (e) {
+      debugPrint('Error cleaning up startup registration on uninstall: $e');
+    }
+  }
+
+  // Velopack expects the application to terminate quickly after handling the hook.
+  // We exit immediately with code 0.
+  exit(0);
+}
+
 /// Entry point for Argus desktop application.
 /// Initializes the single instance lock, window, settings, break timer,
 /// startup service, notification and tray services, then runs the app.
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Single Instance Check:
+  // 1. Velopack Lifecycle Hooks:
+  // Must run BEFORE single-instance lock check and BEFORE any UI is created.
+  await _handleVelopackHooks(args);
+
+  // 2. Single Instance Check:
   // Try to acquire an exclusive lock on %APPDATA%\Argus\app.lock.
   // If another instance is already running, exit immediately without creating
   // a tray icon or window.

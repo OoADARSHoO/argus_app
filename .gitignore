@@ -36,6 +36,9 @@ migrate_working_dir/
 # Symbolication related
 app.*.symbols
 
+# Velopack releases directory
+Releases/
+
 # Obfuscation related
 app.*.map.json
 
