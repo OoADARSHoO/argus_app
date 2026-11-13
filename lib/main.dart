@@ -114,6 +114,9 @@ void main(List<String> args) async {
   await notificationService.setup();
 
   // Listen to timer phase transitions and switch window overlay mode.
+  // When the timer enters breakTime, the window goes fullscreen always-on-top
+  // and shows the break overlay. When it leaves breakTime, the window is
+  // restored to its pre-break state.
   TimerPhase lastTimerPhase = TimerPhase.working;
   bool lastPreBreakWarning = false;
   breakTimerService.addListener(() {
@@ -124,6 +127,9 @@ void main(List<String> args) async {
         windowService.enterOverlayMode();
       } else {
         windowService.exitOverlayMode();
+        // Phase just changed to working — start the safety-net timer in
+        // case the normal exit path failed partway.
+        windowService.startOverlayExitSafetyTimer();
       }
     }
 

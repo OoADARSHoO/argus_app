@@ -53,6 +53,22 @@ void main() {
     expect(timer.secondsUntilBreak, 20 * 60); // fresh 20 min interval
   });
 
+  test('break ending triggers overlay exit (phase -> working)', () {
+    timer.startBreakNow();
+    expect(timer.phase, TimerPhase.breakTime);
+    expect(timer.secondsLeftInBreak, 20);
+
+    // Advance through the entire break duration (20 seconds).
+    // When secondsLeftInBreak reaches 0, phase changes to working,
+    // which triggers windowService.exitOverlayMode() in main.dart.
+    for (var i = 0; i < 20; i++) {
+      currentTime = currentTime.add(const Duration(seconds: 1));
+      timer.tick();
+    }
+    expect(timer.phase, TimerPhase.working);
+    expect(timer.secondsUntilBreak, 20 * 60);
+  });
+
   test('preBreakWarning only when notifications are on', () {
     // Default: notifications on -> warning in last 10 seconds
     for (var i = 0; i < 1190; i++) {
