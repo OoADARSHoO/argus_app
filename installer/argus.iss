@@ -6,13 +6,13 @@
 ; =============================================================================
 ; Inno Setup Script for Argus (LEGACY / SUPERSEDED)
 ; Publisher: Bitekoi Labs
-; Version: 0.1.15
+; Version: 0.2.0
 ;
 ; This script packages the Flutter Windows Release build into an installer.
 ; Compile with Inno Setup Compiler (ISCC.exe or the Inno Setup IDE).
 
 #define MyAppName "Argus"
-#define MyAppVersion "0.1.15"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "Bitekoi Labs"
 #define MyAppURL "https://bitekoilabs.com"
 #define MyAppExeName "Argus.exe"

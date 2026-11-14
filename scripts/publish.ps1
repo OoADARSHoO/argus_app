@@ -1,4 +1,4 @@
-﻿# =============================================================================
+# =============================================================================
 # scripts\publish.ps1 – Build, Package, Tag & Publish Argus to GitHub Releases
 #
 # Run from the repo root (argus_app\):
@@ -179,3 +179,4 @@ if ($Notes) {
 Write-Host "`n🎉 Successfully published $tag to GitHub!" -ForegroundColor Green
 Write-Host "   Release URL: $repoUrl/releases/tag/$tag" -ForegroundColor Green
 Write-Host "   Users can download Argus-win-Setup.exe and existing installs will auto-update!" -ForegroundColor Yellow
+

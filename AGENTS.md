@@ -8,7 +8,7 @@ Argus is a **Windows-only desktop app** that enforces the 20-20-20 eye-rest rule
 
 - Tagline: "Your eyes. Our watch."
 - Publisher: Bitekoi Labs
-- Version: 0.1.15 (MVP)
+- Version: 0.2.0 (MVP)
 - The owner is a beginner Flutter developer. **Write simple, readable, well-commented code. Prefer boring and obvious over clever.**
 
 ## 2. Source of truth for design

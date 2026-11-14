@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
@@ -22,6 +23,14 @@ class SupportPage extends StatelessWidget {
   static const double currentDonation = 128.0;
   static const double targetDonation = 200.0;
   static const double progressFraction = currentDonation / targetDonation; // 0.64
+
+  Future<void> _launchUrl(String url) async {
+    try {
+      await Process.run('cmd', ['/c', 'start', '', url]);
+    } catch (e) {
+      debugPrint('SupportPage: Failed to open URL ($url): $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,12 +99,12 @@ class SupportPage extends StatelessWidget {
                     label: 'Donate Now',
                     icon: AppIcons.heart,
                     color: settings.accentColor,
-                    onPressed: () {},
+                    onPressed: () => _launchUrl('https://ko-fi.com/bitekoi'),
                   ),
                   const SizedBox(width: AppSpacing.s12),
                   SecondaryButton(
                     label: 'Learn More',
-                    onPressed: () {},
+                    onPressed: () => _launchUrl('https://ko-fi.com/bitekoi'),
                   ),
                 ],
               ),
