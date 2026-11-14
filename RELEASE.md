@@ -8,10 +8,42 @@ Argus uses **Velopack** (`vpk` CLI tool) for packaging and deployment. Releases 
 
 ## Versioning
 
-- **Format:** `MAJOR.MINOR.PATCH+BUILD` (e.g. `0.1.15+1`)
-- **Version is defined in `pubspec.yaml`** (e.g. `version: 0.1.15+1`). The packaging script reads it from there.
-- **Release tags:** `v0.1.15`, `v0.1.16`, etc.
-- **Release notes:** `ReleaseNotes.md` at project root.
+- **Format:** `MAJOR.MINOR.PATCH+BUILD` (e.g. `0.2.0+1`)
+- **Important:** Velopack requires a standard 3-part SemVer number before the `+` (e.g. `0.2.0`, not `0.2`).
+- **Version is defined in `pubspec.yaml`** (e.g. `version: 0.2.0+1`). Both packaging and publishing scripts read it from there as the single source of truth.
+- **Release tags:** Automatically formatted as `v0.2.0`, `v0.2.1`, etc.
+
+## How to Publish a Release to GitHub (One-Command Flow)
+
+When you make changes and want to publish a new release:
+
+### Step 1: Bump version in `pubspec.yaml`
+Open `pubspec.yaml` and update the version line (use SemVer `X.Y.Z+build`):
+```yaml
+version: 0.2.0+1
+```
+
+### Step 2: Commit and push your changes to GitHub
+```powershell
+git add .
+git commit -m "V0.2.0 (feature description)"
+git push origin main
+```
+
+### Step 3: Run the publish script
+```powershell
+.\scripts\publish.ps1
+```
+*(Optional: you can also pass notes: `.\scripts\publish.ps1 -Notes "Fixed issue with countdown"`)*
+
+The script automatically:
+1. Reads `version` from `pubspec.yaml`.
+2. Compiles Flutter Windows release binary and packages installer + update assets with `vpk pack`.
+3. Creates git tag `v0.2.0` and pushes it to GitHub.
+4. Uses your stored GitHub credentials to upload the release directly to [GitHub Releases](https://github.com/OoADARSHoO/argus_app/releases).
+5. Existing installations of Argus will automatically detect the new release via their built-in update check!
+
+---
 
 ## Local testing
 
