@@ -187,10 +187,8 @@ void main(List<String> args) async {
       if (currentPhase == TimerPhase.breakTime) {
         windowService.enterOverlayMode();
       } else {
+        // exitOverlayMode arms its own safety-net timer internally.
         windowService.exitOverlayMode();
-        // Phase just changed to working — start the safety-net timer in
-        // case the normal exit path failed partway.
-        windowService.startOverlayExitSafetyTimer();
       }
     }
 

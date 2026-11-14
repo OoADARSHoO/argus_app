@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:window_manager/window_manager.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_dimensions.dart';
@@ -18,8 +19,21 @@ class WindowService {
   Rect? _overlayBounds;
   bool _isInOverlayMode = false;
 
-  /// Safety-net timer: if the overlay is still showing 3 seconds after the
-  // break should have ended (phase is working), force exit.
+  /// What the break timer currently WANTS (true during a break). Enter/exit
+  /// calls update this immediately, so a queued action that has become stale
+  /// (e.g. the break was skipped while the window was still going fullscreen)
+  /// can detect it and do nothing.
+  bool _overlayWanted = false;
+
+  /// Overlay transitions run one at a time through this chain. Without it,
+  /// a fast skip makes [exitOverlayMode] run in the middle of
+  /// [enterOverlayMode]: the two sets of platform calls interleave and the
+  /// window can end up fullscreen/always-on-top after "closing".
+  Future<void> _overlayQueue = Future<void>.value();
+
+  /// Safety-net timer. Armed when an exit is requested and cancelled only once
+  /// the exit has finished and been verified. If it fires, the normal path
+  /// hung or failed, so we run the restore steps again, bypassing the queue.
   Timer? _overlayExitSafetyTimer;
 
   /// Initializes the main settings window at 960x640, centered, frameless.
@@ -93,172 +107,154 @@ class WindowService {
 
   /// Switches the window to fullscreen overlay mode for a break.
   ///
-  /// Saves the current window state (visibility, size, position,
-  /// always-on-top) so it can be restored by [exitOverlayMode].
-  /// Safe to call multiple times — returns early if already in overlay mode.
-  Future<void> enterOverlayMode() async {
-    if (_isInOverlayMode) return;
+  /// Saves the current window state (visibility, size, position) so it can be
+  /// restored by [exitOverlayMode]. Safe to call multiple times.
+  Future<void> enterOverlayMode() {
+    _overlayWanted = true;
+    // A new break is starting, so any pending "force exit" is obsolete.
+    _overlayExitSafetyTimer?.cancel();
+    _overlayExitSafetyTimer = null;
+    return _enqueueOverlayStep(_applyEnter);
+  }
 
+  /// Restores the window to its pre-overlay state (size, position,
+  /// always-on-top, visibility). If the window was hidden in the tray before
+  /// the break, it is hidden again. Safe to call multiple times.
+  Future<void> exitOverlayMode() {
+    _overlayWanted = false;
+    _armOverlayExitSafetyTimer();
+    return _enqueueOverlayStep(_applyExit);
+  }
+
+  /// Runs [step] after every previously requested overlay step has finished.
+  Future<void> _enqueueOverlayStep(Future<void> Function() step) {
+    _overlayQueue = _overlayQueue.then((_) => step()).catchError((Object e, StackTrace s) {
+      // Never let one failed step break the chain for later steps.
+      debugPrint('DEBUG OVERLAY: step failed: $e\n$s');
+    });
+    return _overlayQueue;
+  }
+
+  Future<void> _applyEnter() async {
+    // The break was already skipped/ended while this step waited in the
+    // queue, so going fullscreen now would only flash the screen.
+    if (!_overlayWanted) return;
+    if (_isInOverlayMode) return;
     _isInOverlayMode = true;
 
     try {
-      // Remember the current state so we can restore it later.
       _overlayWasVisible = await windowManager.isVisible();
       _overlayBounds = await windowManager.getBounds();
 
-      // Make the window resizable and remove the min/max size constraints
-      // BEFORE calling setFullScreen. On Windows, setFullScreen silently fails
-      // if the window is non-resizable or pinned to a fixed min/max size.
-      // We restore these constraints in [exitOverlayMode].
+      // On Windows, setFullScreen silently fails if the window is
+      // non-resizable or pinned to a fixed size, so lift those limits first.
+      // [_restoreWindow] puts them back.
       await windowManager.setResizable(true);
       await windowManager.setMinimumSize(const Size(0, 0));
       await windowManager.setMaximumSize(const Size(1e6, 1e6));
 
-      // Go frameless, fullscreen, always-on-top on the current monitor.
       await windowManager.setFullScreen(true);
       await windowManager.setAlwaysOnTop(true);
       await windowManager.show();
       await windowManager.focus();
     } catch (e, s) {
+      // _isInOverlayMode stays true so the exit step still cleans up.
       debugPrint('DEBUG OVERLAY ERROR in enterOverlayMode: $e\n$s');
-      // Even if setFullScreen failed, _isInOverlayMode is true, so
-      // exitOverlayMode() will still be callable to clean up.
-      rethrow;
     }
   }
 
-  /// Restores the window to its pre-overlay state.
-  ///
-  /// Restores size, position, and always-on-top. If the window was hidden
-  /// in the tray before the break, hides it again instead of showing.
-  /// Safe to call multiple times — returns early if not in overlay mode.
-  ///
-  /// Each step is wrapped in its own try/catch so that one failure does not
-  /// prevent the remaining steps from executing. [_isInOverlayMode] is set
-  /// to false before any async work so that a subsequent call will not
-  /// return early even if every step throws.
-  Future<void> exitOverlayMode() async {
-    if (!_isInOverlayMode) return;
+  Future<void> _applyExit() async {
+    // A new break started while this step waited in the queue: stay put.
+    if (_overlayWanted) return;
 
-    _isInOverlayMode = false;
+    if (_isInOverlayMode) {
+      await _restoreWindow();
+      _isInOverlayMode = false;
+    }
+    _overlayBounds = null;
+
+    // Finished: the safety net is no longer needed.
     _overlayExitSafetyTimer?.cancel();
     _overlayExitSafetyTimer = null;
+  }
 
-    // Leave fullscreen and always-on-top. These are best-effort: if the
-    // window was never successfully put into fullscreen mode (e.g. because
-    // enterOverlayMode() failed partway), these calls are no-ops on Windows
-    // rather than errors.
-    try {
-      await windowManager.setFullScreen(false);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: setFullScreen(false) failed: $e');
-    }
-    try {
-      await windowManager.setAlwaysOnTop(false);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: setAlwaysOnTop(false) failed: $e');
-    }
-
-    // Restore non-resizable and fixed size constraints so it goes back to
-    // a fixed 960x640 settings window.
-    try {
-      await windowManager.setResizable(false);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: setResizable(false) failed: $e');
-    }
-    try {
-      await windowManager.setMinimumSize(AppDimensions.windowSize);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: setMinimumSize failed: $e');
-    }
-    try {
-      await windowManager.setMaximumSize(AppDimensions.windowSize);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: setMaximumSize failed: $e');
-    }
-
-    // Restore the saved size and position.
-    if (_overlayBounds != null) {
+  /// Undoes everything [_applyEnter] did. Every step has its own try/catch so
+  /// one failure cannot stop the rest. Then it VERIFIES the result, because on
+  /// Windows these calls can return without the window actually changing.
+  Future<void> _restoreWindow() async {
+    for (var attempt = 0; attempt < 2; attempt++) {
       try {
-        await windowManager.setBounds(_overlayBounds!);
+        await windowManager.setAlwaysOnTop(false);
       } catch (e) {
-        debugPrint('DEBUG OVERLAY: setBounds failed: $e');
+        debugPrint('DEBUG OVERLAY: setAlwaysOnTop(false) failed: $e');
       }
+      try {
+        await windowManager.setFullScreen(false);
+      } catch (e) {
+        debugPrint('DEBUG OVERLAY: setFullScreen(false) failed: $e');
+      }
+
+      // Back to the fixed 960x640 settings window.
+      try {
+        await windowManager.setResizable(false);
+        await windowManager.setMinimumSize(AppDimensions.windowSize);
+        await windowManager.setMaximumSize(AppDimensions.windowSize);
+      } catch (e) {
+        debugPrint('DEBUG OVERLAY: restoring size limits failed: $e');
+      }
+      if (_overlayBounds != null) {
+        try {
+          await windowManager.setBounds(_overlayBounds!);
+        } catch (e) {
+          debugPrint('DEBUG OVERLAY: setBounds failed: $e');
+        }
+      }
+
+      // Verify, and go around once more if the window is still stuck.
+      var stillStuck = false;
+      try {
+        stillStuck = await windowManager.isFullScreen() ||
+            await windowManager.isAlwaysOnTop();
+      } catch (e) {
+        debugPrint('DEBUG OVERLAY: verify failed: $e');
+      }
+      if (!stillStuck) break;
+      debugPrint('DEBUG OVERLAY: window still fullscreen/on top, retrying');
     }
 
-    // If the window was hidden in the tray before the break, hide it again.
-    // Otherwise show and focus it.
-    if (_overlayWasVisible) {
-      try {
+    // Only re-show the window if the user had it open before the break.
+    // Otherwise it goes back into the tray.
+    try {
+      if (_overlayWasVisible) {
         await windowManager.show();
         await windowManager.focus();
-      } catch (e) {
-        debugPrint('DEBUG OVERLAY: show/focus failed: $e');
-      }
-    } else {
-      try {
+      } else {
         await windowManager.hide();
-      } catch (e) {
-        debugPrint('DEBUG OVERLAY: hide failed: $e');
       }
+    } catch (e) {
+      debugPrint('DEBUG OVERLAY: show/hide failed: $e');
     }
+
+    // Flutter can keep painting the last (overlay) frame after a native
+    // resize, which looks like a window that "won't close". Force fresh
+    // frames now and again once the resize has settled.
+    SchedulerBinding.instance.scheduleForcedFrame();
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      SchedulerBinding.instance.scheduleForcedFrame();
+    });
   }
 
-  /// Force-exit overlay mode regardless of internal state.
-  ///
-  /// Used as a safety net when the normal [exitOverlayMode] path has not
-  /// completed within the expected time (e.g. the break timer has ended but
-  /// the overlay is still visible). This method resets [_isInOverlayMode]
-  /// and performs the same restoration steps as [exitOverlayMode], but does
-  /// not check the flag first.
-  Future<void> forceExitOverlayMode() async {
-    _isInOverlayMode = false;
-    _overlayWasVisible = false;
-    _overlayBounds = null;
+  void _armOverlayExitSafetyTimer() {
     _overlayExitSafetyTimer?.cancel();
-    _overlayExitSafetyTimer = null;
-
-    try {
-      await windowManager.setFullScreen(false);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: forceExit setFullScreen(false) failed: $e');
-    }
-    try {
-      await windowManager.setAlwaysOnTop(false);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: forceExit setAlwaysOnTop(false) failed: $e');
-    }
-    try {
-      await windowManager.setResizable(false);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: forceExit setResizable(false) failed: $e');
-    }
-    try {
-      await windowManager.setMinimumSize(AppDimensions.windowSize);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: forceExit setMinimumSize failed: $e');
-    }
-    try {
-      await windowManager.setMaximumSize(AppDimensions.windowSize);
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: forceExit setMaximumSize failed: $e');
-    }
-    try {
-      await windowManager.hide();
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: forceExit hide failed: $e');
-    }
-  }
-
-  /// Start the safety-net exit timer. Call this when the break ends
-  /// (phase changes to [TimerPhase.working]). If [exitOverlayMode] completes
-  /// successfully before the timer fires, it cancels this timer. If the timer
-  /// fires, it calls [forceExitOverlayMode] as a last resort.
-  void startOverlayExitSafetyTimer() {
-    _overlayExitSafetyTimer?.cancel();
-    _overlayExitSafetyTimer = Timer(const Duration(seconds: 3), () {
+    _overlayExitSafetyTimer = Timer(const Duration(seconds: 3), () async {
+      _overlayExitSafetyTimer = null;
+      // A new break may have started in the meantime.
+      if (_overlayWanted) return;
       debugPrint('DEBUG OVERLAY: Safety net: forcing overlay exit');
-      forceExitOverlayMode();
+      // Bypasses the queue on purpose: the queue may be stuck on a hung call.
+      await _restoreWindow();
+      _isInOverlayMode = false;
+      _overlayBounds = null;
     });
   }
 }
