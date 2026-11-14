@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/constants/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/break_overlay/break_overlay_screen.dart';
 import 'screens/settings/settings_shell.dart';
@@ -51,12 +52,30 @@ class ArgusApp extends StatelessWidget {
       ]),
       builder: (context, _) {
         final accent = settingsService.accentColor;
+        final breakBackground = AppColors.breakBackgroundForId(
+          settingsService.settings.breakSettings.backgroundId,
+        );
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Argus',
           theme: AppTheme.darkTheme(accentColor: accent),
           home: breakTimerService.phase == TimerPhase.breakTime
-              ? breakOverlayScreen // Same instance — State is preserved
+              ? ValueListenableBuilder<bool>(
+                  valueListenable: windowService.overlayReady,
+                  builder: (context, ready, child) {
+                    // The native window can still be 960x640 while it is
+                    // entering fullscreen. Show only the break background
+                    // until the window is ready, so the overlay UI is never
+                    // laid out at the wrong size.
+                    if (!ready) {
+                      return SizedBox.expand(
+                        child: ColoredBox(color: breakBackground),
+                      );
+                    }
+                    return child!;
+                  },
+                  child: breakOverlayScreen, // Same instance — State is preserved
+                )
               : SettingsShell(
                   windowService: windowService,
                   settingsService: settingsService,

@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'app.dart';
 import 'services/break_timer_service.dart';
 import 'services/notification_service.dart';
+import 'services/overlay_log.dart';
 import 'services/settings_service.dart';
 import 'services/startup_service.dart';
 import 'services/tray_service.dart';
@@ -183,6 +184,7 @@ void main(List<String> args) async {
   breakTimerService.addListener(() {
     final currentPhase = breakTimerService.phase;
     if (lastTimerPhase != currentPhase) {
+      OverlayLog.write('PHASE $lastTimerPhase -> $currentPhase');
       lastTimerPhase = currentPhase;
       if (currentPhase == TimerPhase.breakTime) {
         windowService.enterOverlayMode();

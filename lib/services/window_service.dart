@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:window_manager/window_manager.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_dimensions.dart';
+import 'overlay_log.dart';
 
 /// Service managing desktop window properties, frameless title bar,
 /// sizing, and window actions using [windowManager].
@@ -18,6 +19,16 @@ class WindowService {
   bool _overlayWasVisible = false;
   Rect? _overlayBounds;
   bool _isInOverlayMode = false;
+
+  /// True once we have asked window_manager for fullscreen. The exit path
+  /// must only undo fullscreen if this is set: window_manager's native
+  /// restore path runs even when the window was never fullscreen, and it
+  /// would resize the window back to a stale saved frame.
+  bool _enteredFullScreen = false;
+
+  /// True if fullscreen could not be confirmed and we fell back to
+  /// maximizing the window instead.
+  bool _usedMaximizeFallback = false;
 
   /// What the break timer currently WANTS (true during a break). Enter/exit
   /// calls update this immediately, so a queued action that has become stale
@@ -35,6 +46,30 @@ class WindowService {
   /// the exit has finished and been verified. If it fires, the normal path
   /// hung or failed, so we run the restore steps again, bypassing the queue.
   Timer? _overlayExitSafetyTimer;
+
+  /// Becomes true when the window is actually fullscreen (or the enter
+  /// timeout elapsed and the fallback ran). The break UI listens to this so
+  /// it never lays itself out in a 960x640 window that is still entering
+  /// fullscreen.
+  final ValueNotifier<bool> overlayReady = ValueNotifier<bool>(false);
+
+  // Native window changes are not instant. These delays give Windows time to
+  // apply each change before the next step reads the state back.
+  static const Duration _settleDelay = Duration(milliseconds: 50);
+  static const Duration _enterPollInterval = Duration(milliseconds: 100);
+  static const Duration _enterPollTimeout = Duration(milliseconds: 1500);
+  static const Duration _exitSettleDelay = Duration(milliseconds: 100);
+  static const Duration _exitFrameTimeout = Duration(milliseconds: 300);
+  static const Duration _exitSafetyDelay = Duration(seconds: 3);
+
+  /// A fullscreen window is at least this much larger (by area) than the
+  /// saved settings window. This is how we verify the real native size
+  /// instead of trusting window_manager's cached isFullScreen() flag.
+  static const double _fullScreenAreaGrowth = 1.05;
+
+  /// Allowed pixel difference when checking that the saved bounds were
+  /// restored. DPI rounding can shift a window by a pixel.
+  static const double _boundsTolerance = 2.0;
 
   /// Initializes the main settings window at 960x640, centered, frameless.
   ///
@@ -130,131 +165,428 @@ class WindowService {
   Future<void> _enqueueOverlayStep(Future<void> Function() step) {
     _overlayQueue = _overlayQueue.then((_) => step()).catchError((Object e, StackTrace s) {
       // Never let one failed step break the chain for later steps.
-      debugPrint('DEBUG OVERLAY: step failed: $e\n$s');
+      OverlayLog.write('OVERLAY step failed: $e\n$s');
     });
     return _overlayQueue;
   }
 
+  /// Runs one window-manager call and logs the state before and after it.
+  ///
+  /// Every call is logged separately (instead of one big try/catch) because
+  /// the whole point of this instrumentation is to find the exact call that
+  /// fails or silently does nothing.
+  Future<void> _loggedStep(
+    String label,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+      OverlayLog.write('$label: ok');
+    } catch (e, s) {
+      OverlayLog.write('$label: ERROR $e\n$s');
+    }
+    await _logWindowState(label);
+  }
+
+  /// Formats a [Rect] with plain numbers.
+  ///
+  /// Release builds print `Instance of 'Rect'` for [Rect.toString], which
+  /// makes the diagnostic log useless exactly when it is needed.
+  String _formatBounds(Rect? rect) {
+    if (rect == null) return 'null';
+    return '${rect.left.toStringAsFixed(0)},${rect.top.toStringAsFixed(0)} '
+        '${rect.width.toStringAsFixed(0)}x${rect.height.toStringAsFixed(0)}';
+  }
+
+  /// Reads the real window state back and writes it to the overlay log.
+  ///
+  /// Note: window_manager's `isFullScreen()` returns its own cached flag, not
+  /// the native window state, so the bounds are the important part here.
+  Future<void> _logWindowState(String label) async {
+    try {
+      final visible = await windowManager.isVisible();
+      final fullScreen = await windowManager.isFullScreen();
+      final onTop = await windowManager.isAlwaysOnTop();
+      final bounds = await windowManager.getBounds();
+      OverlayLog.write(
+        '$label | visible=$visible fullScreen=$fullScreen '
+        'onTop=$onTop bounds=${_formatBounds(bounds)}',
+      );
+    } catch (e) {
+      OverlayLog.write('$label | state readback FAILED: $e');
+    }
+  }
+
   Future<void> _applyEnter() async {
+    OverlayLog.write(
+      'ENTER begin wanted=$_overlayWanted inOverlay=$_isInOverlayMode',
+    );
+
     // The break was already skipped/ended while this step waited in the
     // queue, so going fullscreen now would only flash the screen.
-    if (!_overlayWanted) return;
-    if (_isInOverlayMode) return;
+    if (!_overlayWanted) {
+      OverlayLog.write('ENTER skipped: break already ended');
+      return;
+    }
+    if (_isInOverlayMode) {
+      OverlayLog.write('ENTER skipped: already in overlay mode');
+      return;
+    }
     _isInOverlayMode = true;
+    _enteredFullScreen = false;
+    _usedMaximizeFallback = false;
+    overlayReady.value = false;
 
     try {
       _overlayWasVisible = await windowManager.isVisible();
       _overlayBounds = await windowManager.getBounds();
+      OverlayLog.write(
+        'ENTER saved wasVisible=$_overlayWasVisible '
+        'bounds=${_formatBounds(_overlayBounds)}',
+      );
+    } catch (e, s) {
+      OverlayLog.write('ENTER saving window state FAILED: $e\n$s');
+    }
+
+    try {
+      // Hide the settings frame before the native window changes shape.
+      // Without this the old 960x640 content is stretched over the screen
+      // during the transition, and the reverse happens on the way out.
+      await _loggedStep('ENTER setOpacity(0)', () async {
+        await windowManager.setOpacity(0);
+      });
+
+      // window_manager 0.5.2 resizes the hidden HWND when setFullScreen is
+      // called, and Windows may ignore that resize when the window is finally
+      // shown (upstream issue #265). Show the (transparent) window first so
+      // fullscreen is applied to a visible window every time.
+      await _loggedStep('ENTER show()', () async {
+        await windowManager.show();
+      });
+      await Future<void>.delayed(_settleDelay);
 
       // On Windows, setFullScreen silently fails if the window is
       // non-resizable or pinned to a fixed size, so lift those limits first.
       // [_restoreWindow] puts them back.
-      await windowManager.setResizable(true);
-      await windowManager.setMinimumSize(const Size(0, 0));
-      await windowManager.setMaximumSize(const Size(1e6, 1e6));
+      await _loggedStep('ENTER setResizable(true)', () async {
+        await windowManager.setResizable(true);
+      });
+      await _loggedStep('ENTER setMinimumSize(0,0)', () async {
+        await windowManager.setMinimumSize(const Size(0, 0));
+      });
+      await _loggedStep('ENTER setMaximumSize(1e6)', () async {
+        await windowManager.setMaximumSize(const Size(1e6, 1e6));
+      });
 
-      await windowManager.setFullScreen(true);
-      await windowManager.setAlwaysOnTop(true);
-      await windowManager.show();
-      await windowManager.focus();
+      // The break may have been skipped while we waited above. Do not go
+      // fullscreen for a break that no longer exists.
+      if (!_overlayWanted) {
+        OverlayLog.write('ENTER aborted: break ended before fullscreen');
+        return;
+      }
+
+      await _loggedStep('ENTER setFullScreen(true)', () async {
+        await windowManager.setFullScreen(true);
+      });
+      _enteredFullScreen = true;
+
+      await _loggedStep('ENTER setAlwaysOnTop(true)', () async {
+        await windowManager.setAlwaysOnTop(true);
+      });
+      await _loggedStep('ENTER focus()', () async {
+        await windowManager.focus();
+      });
+
+      // window_manager reports the cached fullscreen flag, which can be true
+      // while the window is still 960x640. Poll the real bounds instead.
+      final becameFullScreen = await _waitForFullScreen();
+
+      // The break may have been skipped while we polled. Do not maximize or
+      // reveal the overlay for a break that no longer exists.
+      if (!_overlayWanted) {
+        OverlayLog.write('ENTER aborted: break ended during fullscreen wait');
+        return;
+      }
+
+      if (!becameFullScreen) {
+        // Last resort: fill the work area. It is not true fullscreen, but the
+        // break screen still covers the screen and stays on top.
+        OverlayLog.write('ENTER fullscreen not confirmed; maximize fallback');
+        await _loggedStep('ENTER maximize() fallback', () async {
+          await windowManager.maximize();
+        });
+        _usedMaximizeFallback = true;
+        await Future<void>.delayed(_exitSettleDelay);
+        await _loggedStep('ENTER setAlwaysOnTop(true) fallback', () async {
+          await windowManager.setAlwaysOnTop(true);
+        });
+        await _loggedStep('ENTER focus() fallback', () async {
+          await windowManager.focus();
+        });
+      }
+
+      overlayReady.value = true;
+      OverlayLog.write('ENTER ready=true');
+      // Let Flutter paint the break UI into the fullscreen surface while the
+      // window is still transparent, then reveal the finished frame. Without
+      // this wait the user can see the old settings frame for one vsync.
+      await _waitForFrame();
+      await _loggedStep('ENTER setOpacity(1)', () async {
+        await windowManager.setOpacity(1);
+      });
     } catch (e, s) {
-      // _isInOverlayMode stays true so the exit step still cleans up.
-      debugPrint('DEBUG OVERLAY ERROR in enterOverlayMode: $e\n$s');
+      OverlayLog.write('ENTER failed: $e\n$s');
+      // Even on failure the break UI must eventually appear; showing it in a
+      // non-fullscreen window is better than leaving a transparent window.
+      overlayReady.value = true;
+    } finally {
+      // Never leave the window invisible, even if an enter step failed.
+      await _safeSetOpacity(1);
     }
   }
 
-  Future<void> _applyExit() async {
-    // A new break started while this step waited in the queue: stay put.
-    if (_overlayWanted) return;
-
-    if (_isInOverlayMode) {
-      await _restoreWindow();
-      _isInOverlayMode = false;
+  /// Polls the real window bounds until the window is larger than the saved
+  /// settings window. Returns false after the timeout.
+  Future<bool> _waitForFullScreen() async {
+    final saved = _overlayBounds;
+    if (saved == null || saved.width <= 0 || saved.height <= 0) {
+      // No baseline to compare against; give the native call time to land.
+      await Future<void>.delayed(_enterPollInterval);
+      return true;
     }
-    _overlayBounds = null;
 
-    // Finished: the safety net is no longer needed.
-    _overlayExitSafetyTimer?.cancel();
-    _overlayExitSafetyTimer = null;
+    final savedArea = saved.width * saved.height;
+    final deadline = DateTime.now().add(_enterPollTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (!_overlayWanted) {
+        OverlayLog.write('ENTER fullscreen wait aborted: break ended');
+        return false;
+      }
+      try {
+        final bounds = await windowManager.getBounds();
+        final grew = bounds.width > saved.width || bounds.height > saved.height;
+        final area = bounds.width * bounds.height;
+        if (grew && area >= savedArea * _fullScreenAreaGrowth) {
+          OverlayLog.write(
+            'ENTER fullscreen confirmed bounds=${_formatBounds(bounds)} '
+            'saved=${_formatBounds(saved)}',
+          );
+          return true;
+        }
+        OverlayLog.write(
+          'ENTER waiting for fullscreen bounds=${_formatBounds(bounds)} '
+          'saved=${_formatBounds(saved)}',
+        );
+      } catch (e) {
+        OverlayLog.write('ENTER bounds readback failed: $e');
+      }
+      await Future<void>.delayed(_enterPollInterval);
+    }
+    OverlayLog.write('ENTER fullscreen timed out after $_enterPollTimeout');
+    return false;
+  }
+
+  Future<void> _applyExit() async {
+    OverlayLog.write(
+      'EXIT begin wanted=$_overlayWanted inOverlay=$_isInOverlayMode '
+      'wasVisible=$_overlayWasVisible bounds=${_formatBounds(_overlayBounds)}',
+    );
+
+    // A new break started while this step waited in the queue: stay put.
+    if (_overlayWanted) {
+      OverlayLog.write('EXIT skipped: a new break already started');
+      return;
+    }
+
+    overlayReady.value = false;
+
+    try {
+      if (_isInOverlayMode) {
+        await _restoreWindow();
+        _isInOverlayMode = false;
+        OverlayLog.write('EXIT restore finished');
+      }
+    } finally {
+      _overlayBounds = null;
+      _enteredFullScreen = false;
+      _usedMaximizeFallback = false;
+      // Always reset opacity, even if a restore step threw: a transparent
+      // settings window would look like the app had disappeared.
+      await _safeSetOpacity(1);
+      _overlayExitSafetyTimer?.cancel();
+      _overlayExitSafetyTimer = null;
+    }
   }
 
   /// Undoes everything [_applyEnter] did. Every step has its own try/catch so
   /// one failure cannot stop the rest. Then it VERIFIES the result, because on
   /// Windows these calls can return without the window actually changing.
   Future<void> _restoreWindow() async {
+    // Mask the whole transition. The Flutter tree may still be showing the
+    // last overlay frame while the native window shrinks to 960x640; without
+    // opacity 0 the user sees the break UI stuck in a small window.
+    await _loggedStep('EXIT setOpacity(0)', () async {
+      await windowManager.setOpacity(0);
+    });
+
     for (var attempt = 0; attempt < 2; attempt++) {
-      try {
+      OverlayLog.write('EXIT restore attempt ${attempt + 1}');
+      await _loggedStep('EXIT setAlwaysOnTop(false)', () async {
         await windowManager.setAlwaysOnTop(false);
-      } catch (e) {
-        debugPrint('DEBUG OVERLAY: setAlwaysOnTop(false) failed: $e');
-      }
-      try {
-        await windowManager.setFullScreen(false);
-      } catch (e) {
-        debugPrint('DEBUG OVERLAY: setFullScreen(false) failed: $e');
+      });
+
+      // Only undo fullscreen if we actually entered it. Calling
+      // setFullScreen(false) on a window that was never fullscreen makes
+      // window_manager restore a stale saved frame and window style.
+      if (_enteredFullScreen) {
+        await _loggedStep('EXIT setFullScreen(false)', () async {
+          await windowManager.setFullScreen(false);
+        });
+      } else if (_usedMaximizeFallback) {
+        await _loggedStep('EXIT unmaximize()', () async {
+          await windowManager.unmaximize();
+        });
+      } else if (await _safeIsFullScreen()) {
+        // Defensive: a previous failed cycle may have left the cached flag on.
+        await _loggedStep('EXIT setFullScreen(false) stuck flag', () async {
+          await windowManager.setFullScreen(false);
+        });
       }
 
-      // Back to the fixed 960x640 settings window.
-      try {
-        await windowManager.setResizable(false);
-        await windowManager.setMinimumSize(AppDimensions.windowSize);
-        await windowManager.setMaximumSize(AppDimensions.windowSize);
-      } catch (e) {
-        debugPrint('DEBUG OVERLAY: restoring size limits failed: $e');
-      }
+      // Restore the exact pre-break geometry. Resizable must be on while the
+      // bounds change, then the fixed 960x640 limits go back on.
+      await _loggedStep('EXIT setResizable(true)', () async {
+        await windowManager.setResizable(true);
+      });
       if (_overlayBounds != null) {
-        try {
+        await _loggedStep('EXIT setBounds(saved)', () async {
           await windowManager.setBounds(_overlayBounds!);
-        } catch (e) {
-          debugPrint('DEBUG OVERLAY: setBounds failed: $e');
-        }
+        });
       }
+      await _loggedStep('EXIT setMinimumSize(windowSize)', () async {
+        await windowManager.setMinimumSize(AppDimensions.windowSize);
+      });
+      await _loggedStep('EXIT setMaximumSize(windowSize)', () async {
+        await windowManager.setMaximumSize(AppDimensions.windowSize);
+      });
+      await _loggedStep('EXIT setResizable(false)', () async {
+        await windowManager.setResizable(false);
+      });
 
-      // Verify, and go around once more if the window is still stuck.
-      var stillStuck = false;
-      try {
-        stillStuck = await windowManager.isFullScreen() ||
-            await windowManager.isAlwaysOnTop();
-      } catch (e) {
-        debugPrint('DEBUG OVERLAY: verify failed: $e');
-      }
-      if (!stillStuck) break;
-      debugPrint('DEBUG OVERLAY: window still fullscreen/on top, retrying');
+      // Verify the real geometry, not just the cached flags, and go around
+      // once more if the window is still the wrong size.
+      final restored = await _verifyRestored();
+      if (restored) break;
+      OverlayLog.write('EXIT still not restored, retrying');
     }
+
+    // Let the native resize settle before deciding whether the window should
+    // be visible. This also gives the timer's phase change time to rebuild
+    // the Flutter tree back to the settings shell.
+    await Future<void>.delayed(_exitSettleDelay);
 
     // Only re-show the window if the user had it open before the break.
     // Otherwise it goes back into the tray.
-    try {
-      if (_overlayWasVisible) {
+    if (_overlayWasVisible) {
+      await _loggedStep('EXIT show()', () async {
         await windowManager.show();
+      });
+      await _loggedStep('EXIT focus()', () async {
         await windowManager.focus();
-      } else {
+      });
+    } else {
+      await _loggedStep('EXIT hide()', () async {
         await windowManager.hide();
-      }
-    } catch (e) {
-      debugPrint('DEBUG OVERLAY: show/hide failed: $e');
+      });
     }
 
-    // Flutter can keep painting the last (overlay) frame after a native
-    // resize, which looks like a window that "won't close". Force fresh
-    // frames now and again once the resize has settled.
-    SchedulerBinding.instance.scheduleForcedFrame();
-    Future<void>.delayed(const Duration(milliseconds: 150), () {
-      SchedulerBinding.instance.scheduleForcedFrame();
-    });
+    // Make sure Flutter has painted the settings screen (or the hidden
+    // window) before it becomes visible again. Without this wait the user
+    // can see the old overlay frame at the restored 960x640 size.
+    await _waitForFrame();
+  }
+
+  /// Verifies the window is no longer on top / fullscreen and that its bounds
+  /// match the saved pre-break bounds.
+  Future<bool> _verifyRestored() async {
+    try {
+      final onTop = await windowManager.isAlwaysOnTop();
+      final fullScreen = await windowManager.isFullScreen();
+      final bounds = await windowManager.getBounds();
+      final saved = _overlayBounds;
+      final boundsOk = saved == null ||
+          ((bounds.left - saved.left).abs() <= _boundsTolerance &&
+              (bounds.top - saved.top).abs() <= _boundsTolerance &&
+              (bounds.width - saved.width).abs() <= _boundsTolerance &&
+              (bounds.height - saved.height).abs() <= _boundsTolerance);
+      OverlayLog.write(
+        'EXIT verify onTop=$onTop fullScreen=$fullScreen '
+        'bounds=${_formatBounds(bounds)} saved=${_formatBounds(saved)} '
+        'boundsOk=$boundsOk',
+      );
+      return !onTop && !fullScreen && boundsOk;
+    } catch (e) {
+      OverlayLog.write('EXIT verify FAILED: $e');
+      return false;
+    }
+  }
+
+  /// Waits for the next Flutter frame, but never longer than
+  /// [_exitFrameTimeout] so a stuck engine cannot block the restore.
+  Future<void> _waitForFrame() async {
+    try {
+      await SchedulerBinding.instance.endOfFrame.timeout(_exitFrameTimeout);
+      OverlayLog.write('EXIT next frame painted');
+    } on TimeoutException {
+      OverlayLog.write('EXIT next frame timed out');
+    } catch (e) {
+      OverlayLog.write('EXIT next frame failed: $e');
+    }
+  }
+
+  Future<void> _safeSetOpacity(double opacity) async {
+    try {
+      await windowManager.setOpacity(opacity);
+      OverlayLog.write('setOpacity($opacity): ok');
+    } catch (e) {
+      OverlayLog.write('setOpacity($opacity) FAILED: $e');
+    }
+  }
+
+  Future<bool> _safeIsFullScreen() async {
+    try {
+      return await windowManager.isFullScreen();
+    } catch (e) {
+      OverlayLog.write('EXIT isFullScreen readback FAILED: $e');
+      return false;
+    }
   }
 
   void _armOverlayExitSafetyTimer() {
     _overlayExitSafetyTimer?.cancel();
-    _overlayExitSafetyTimer = Timer(const Duration(seconds: 3), () async {
+    OverlayLog.write('EXIT safety net armed (${_exitSafetyDelay.inSeconds}s)');
+    _overlayExitSafetyTimer = Timer(_exitSafetyDelay, () async {
       _overlayExitSafetyTimer = null;
       // A new break may have started in the meantime.
-      if (_overlayWanted) return;
-      debugPrint('DEBUG OVERLAY: Safety net: forcing overlay exit');
+      if (_overlayWanted) {
+        OverlayLog.write('EXIT safety net: ignored, new break started');
+        return;
+      }
+      OverlayLog.write('EXIT safety net: forcing overlay exit');
       // Bypasses the queue on purpose: the queue may be stuck on a hung call.
-      await _restoreWindow();
-      _isInOverlayMode = false;
-      _overlayBounds = null;
+      try {
+        await _restoreWindow();
+        _isInOverlayMode = false;
+      } catch (e, s) {
+        OverlayLog.write('EXIT safety net failed: $e\n$s');
+      } finally {
+        _overlayBounds = null;
+        _enteredFullScreen = false;
+        _usedMaximizeFallback = false;
+        // The safety net's most important job: never leave the window
+        // transparent or invisible forever.
+        await _safeSetOpacity(1);
+      }
     });
   }
 }
