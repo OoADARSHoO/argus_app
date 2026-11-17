@@ -69,6 +69,47 @@ void main() {
     expect(timer.secondsUntilBreak, 20 * 60);
   });
 
+  test('break countdown rounds up and ends exactly at the deadline', () {
+    timer.startBreakNow();
+    expect(timer.breakTotal, const Duration(seconds: 20));
+    expect(timer.breakRemaining, const Duration(seconds: 20));
+    expect(timer.secondsLeftInBreak, 20);
+
+    // Half a second in, the display still shows a full 20 seconds.
+    currentTime = currentTime.add(const Duration(milliseconds: 500));
+    timer.tick();
+    expect(timer.phase, TimerPhase.breakTime);
+    expect(timer.secondsLeftInBreak, 20);
+
+    // 19.5 seconds in: 0.5 s remains, which must round up to 1.
+    currentTime = currentTime.add(const Duration(seconds: 19));
+    timer.tick();
+    expect(timer.phase, TimerPhase.breakTime);
+    expect(timer.secondsLeftInBreak, 1);
+    expect(timer.breakRemaining, const Duration(milliseconds: 500));
+
+    // Exactly 20 seconds in: the break ends and no time remains.
+    currentTime = currentTime.add(const Duration(milliseconds: 500));
+    timer.tick();
+    expect(timer.phase, TimerPhase.working);
+    expect(timer.breakRemaining, Duration.zero);
+    expect(timer.secondsLeftInBreak, 0);
+  });
+
+  test('working countdown rounds up instead of truncating', () {
+    expect(timer.secondsUntilBreak, 20 * 60);
+
+    // 0.5 s elapsed -> 1199.5 s remain, displayed as 1200.
+    currentTime = currentTime.add(const Duration(milliseconds: 500));
+    timer.tick();
+    expect(timer.secondsUntilBreak, 20 * 60);
+
+    // 1.1 s elapsed -> 1198.9 s remain, displayed as 1199.
+    currentTime = currentTime.add(const Duration(milliseconds: 600));
+    timer.tick();
+    expect(timer.secondsUntilBreak, 20 * 60 - 1);
+  });
+
   test('preBreakWarning only when notifications are on', () {
     // Default: notifications on -> warning in last 10 seconds
     for (var i = 0; i < 1190; i++) {

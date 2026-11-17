@@ -29,7 +29,10 @@ enum TimerPhase {
 /// The clock is injectable for testing. Use [tick] to drive time manually
 /// in tests.
 class BreakTimerService extends ChangeNotifier {
-  static const Duration _tickInterval = Duration(seconds: 1);
+  /// Recompute four times a second so a phase change lands within 250 ms of
+  /// the real deadline. The UI still shows whole seconds; notifying listeners
+  /// four times a second is cheap (the tray menu is only rebuilt on click).
+  static const Duration _tickInterval = Duration(milliseconds: 250);
   /// If the gap between two ticks exceeds this, treat it as a sleep wake-up
   /// and restart the working interval.
   static const Duration _sleepGapThreshold = Duration(seconds: 5);
@@ -65,13 +68,38 @@ class BreakTimerService extends ChangeNotifier {
       return _pausedRemainingSeconds ?? 0;
     }
     if (_phase != TimerPhase.working || _workingDeadline == null) return 0;
-    return _workingDeadline!.difference(now()).inSeconds.clamp(0, 1 << 30);
+    return _ceilSeconds(_workingDeadline!.difference(now()));
   }
 
   /// Seconds remaining in the current break (breakTime phase only).
   int get secondsLeftInBreak {
     if (_phase != TimerPhase.breakTime || _breakDeadline == null) return 0;
-    return _breakDeadline!.difference(now()).inSeconds.clamp(0, 1 << 30);
+    return _ceilSeconds(_breakDeadline!.difference(now()));
+  }
+
+  /// Exact time remaining in the current break. Zero when not in a break.
+  ///
+  /// The overlay ring uses milliseconds so it empties at the same moment the
+  /// break ends, instead of being rounded to whole seconds.
+  Duration get breakRemaining {
+    if (_phase != TimerPhase.breakTime || _breakDeadline == null) {
+      return Duration.zero;
+    }
+    final remaining = _breakDeadline!.difference(now());
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  /// Total configured length of a break.
+  Duration get breakTotal => Duration(seconds: _breakDurationSeconds);
+
+  /// Rounds a remaining [Duration] up to whole seconds.
+  ///
+  /// Truncating shows 0 while up to a second is still left and would switch
+  /// phase early. Ceiling keeps a 20 s break showing 20 down to 1, then 0
+  /// exactly at the deadline.
+  int _ceilSeconds(Duration remaining) {
+    if (remaining <= Duration.zero) return 0;
+    return (remaining.inMilliseconds + 999) ~/ 1000;
   }
 
   /// True during the last 10 seconds of working, only if Show Notifications
@@ -152,7 +180,7 @@ class BreakTimerService extends ChangeNotifier {
   }
 
   //--------------------------------------------------------------------------
-  // Internal tick logic (runs every second, or on manual tick)
+  // Internal tick logic (runs every 250 ms, or on manual tick)
   //--------------------------------------------------------------------------
 
   void _recompute() {
@@ -185,9 +213,11 @@ class BreakTimerService extends ChangeNotifier {
   }
 
   void _tickWorking(DateTime currentTime) {
-    if (_workingDeadline == null) return;
-    final remaining = _workingDeadline!.difference(currentTime).inSeconds;
-    if (remaining <= 0) {
+    final deadline = _workingDeadline;
+    if (deadline == null) return;
+    // Compare instants instead of truncated whole seconds: truncation would
+    // start the break up to 999 ms before the deadline.
+    if (!currentTime.isBefore(deadline)) {
       _phase = TimerPhase.breakTime;
       _scheduleNextBreakDeadline();
       notifyListeners();
@@ -197,9 +227,10 @@ class BreakTimerService extends ChangeNotifier {
   }
 
   void _tickBreakTime(DateTime currentTime) {
-    if (_breakDeadline == null) return;
-    final remaining = _breakDeadline!.difference(currentTime).inSeconds;
-    if (remaining <= 0) {
+    final deadline = _breakDeadline;
+    if (deadline == null) return;
+    // End exactly at the deadline, not when the truncated second hits 0.
+    if (!currentTime.isBefore(deadline)) {
       _phase = TimerPhase.working;
       _scheduleNextWorkingDeadline();
       notifyListeners();

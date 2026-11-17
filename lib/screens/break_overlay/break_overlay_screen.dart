@@ -45,19 +45,24 @@ class _BreakOverlayScreenState extends State<BreakOverlayScreen>
   }
 
   /// Start the smooth ring animation ONCE: from the current remaining
-  /// fraction down to 0 over the remaining break time.
+  /// fraction down to 0 over the exact time left in the break.
   /// Never restarted on rebuilds — the animation runs continuously for the
   /// entire break.
   void _startRingAnimation() {
-    final durationSeconds = widget.settings.settings.breakDurationSeconds;
-    final currentSeconds = widget.timer.secondsLeftInBreak;
-    if (durationSeconds <= 0 || currentSeconds <= 0) {
+    final total = widget.timer.breakTotal;
+    final remaining = widget.timer.breakRemaining;
+    if (total <= Duration.zero || remaining <= Duration.zero) {
       _ringController.value = 0.0;
       return;
     }
-    final startValue = currentSeconds / durationSeconds;
+    final startValue =
+        (remaining.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
     _ringController
-      ..duration = Duration(seconds: currentSeconds)
+      // AnimationController.reverse() runs the controller's duration scaled
+      // by the starting fraction. Using the FULL break length makes the
+      // reverse take exactly `remaining` (total * remaining / total), so the
+      // ring empties at the same moment the break ends.
+      ..duration = total
       ..value = startValue
       ..reverse(from: startValue);
   }
