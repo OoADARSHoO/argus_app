@@ -42,6 +42,22 @@ class _BreakOverlayScreenState extends State<BreakOverlayScreen>
     super.initState();
     _ringController = AnimationController(vsync: this);
     _startRingAnimation();
+    // Esc is listened for at the app level instead of through a widget's
+    // focus. The overlay is a frameless fullscreen native window, and a
+    // focus-based listener (the old KeyboardListener with a new FocusNode on
+    // every rebuild) never held keyboard focus, so Esc did nothing.
+    HardwareKeyboard.instance.addHandler(_handleKey);
+  }
+
+  /// Skips the break when Esc is pressed and the Skip Option is on.
+  /// Returns false so the key event is not swallowed for anyone else.
+  bool _handleKey(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        widget.settings.settings.skipEnabled) {
+      widget.timer.skipBreak();
+    }
+    return false;
   }
 
   /// Start the smooth ring animation ONCE: from the current remaining
@@ -69,6 +85,7 @@ class _BreakOverlayScreenState extends State<BreakOverlayScreen>
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKey);
     _ringController.dispose();
     super.dispose();
   }
@@ -123,123 +140,110 @@ class _BreakOverlayScreenState extends State<BreakOverlayScreen>
 
         return Material(
           color: backgroundColor,
-          child: Focus(
-            autofocus: true,
-            child: KeyboardListener(
-              focusNode: FocusNode(),
-              onKeyEvent: (event) {
-                // Esc to skip — only when Skip Option is on.
-                if (skipEnabled &&
-                    event.logicalKey == LogicalKeyboardKey.escape) {
-                  widget.timer.skipBreak();
-                }
-              },
-              child: Stack(
-                children: [
-                  // Centered content column
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Eye icon
-                        Icon(
-                          AppIcons.eye,
-                          size: AppDimensions.iconSize * 2.5,
+          child: Stack(
+            children: [
+              // Centered content column
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Eye icon
+                    Icon(
+                      AppIcons.eye,
+                      size: AppDimensions.iconSize * 2.5,
+                      color: textColor,
+                    ),
+                    const SizedBox(height: AppSpacing.s24),
+
+                    // Headline (first sentence of break message)
+                    Text(
+                      headline,
+                      style: AppTypography.breakHeadline.copyWith(
+                        fontSize: headlineSize,
+                        color: textColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (body.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.s16),
+                      // Body (rest of break message)
+                      Text(
+                        body,
+                        style: AppTypography.breakBody.copyWith(
+                          fontSize: bodySize,
                           color: textColor,
                         ),
-                        const SizedBox(height: AppSpacing.s24),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.s32),
 
-                        // Headline (first sentence of break message)
-                        Text(
-                          headline,
-                          style: AppTypography.breakHeadline.copyWith(
-                            fontSize: headlineSize,
-                            color: textColor,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (body.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.s16),
-                          // Body (rest of break message)
-                          Text(
-                            body,
-                            style: AppTypography.breakBody.copyWith(
-                              fontSize: bodySize,
+                    // Progress ring with countdown number inside
+                    if (showRing)
+                      AnimatedBuilder(
+                        animation: _ringController,
+                        builder: (context, child) {
+                          return RepaintBoundary(
+                            child: ProgressRing(
+                              value: _ringController.value,
+                              size: AppDimensions
+                                  .progressRingBreakScreen,
+                              strokeWidth:
+                                  AppDimensions.progressRingStrokeWidthBreak,
                               color: textColor,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                        const SizedBox(height: AppSpacing.s32),
-
-                        // Progress ring with countdown number inside
-                        if (showRing)
-                          AnimatedBuilder(
-                            animation: _ringController,
-                            builder: (context, child) {
-                              return RepaintBoundary(
-                                child: ProgressRing(
-                                  value: _ringController.value,
-                                  size: AppDimensions
-                                      .progressRingBreakScreen,
-                                  strokeWidth:
-                                      AppDimensions.progressRingStrokeWidthBreak,
-                                  color: textColor,
-                                  child: Text(
-                                    currentSecondsLeft.toString(),
-                                    style: AppTypography.countdownNumber
-                                        .copyWith(
-                                          color: textColor,
-                                        ),
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        else
-                          // Countdown number without the ring
-                          Text(
-                            currentSecondsLeft.toString(),
-                            style: AppTypography.countdownNumber.copyWith(
-                              color: textColor,
-                            ),
-                          ),
-                        const SizedBox(height: AppSpacing.s32),
-
-                        // Tip row
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              AppIcons.lightbulb,
-                              size: AppDimensions.iconSizeSmall,
-                              color: textColor.withValues(alpha: 0.7),
-                            ),
-                            const SizedBox(width: AppSpacing.s8),
-                            Text(
-                              'Tip: Blink slowly and relax your eyes.',
-                              style: AppTypography.body.copyWith(
-                                color: textColor.withValues(alpha: 0.7),
+                              child: Text(
+                                currentSecondsLeft.toString(),
+                                style: AppTypography.countdownNumber
+                                    .copyWith(
+                                      color: textColor,
+                                    ),
                               ),
                             ),
-                          ],
+                          );
+                        },
+                      )
+                    else
+                      // Countdown number without the ring
+                      Text(
+                        currentSecondsLeft.toString(),
+                        style: AppTypography.countdownNumber.copyWith(
+                          color: textColor,
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.s32),
+
+                    // Tip row
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          AppIcons.lightbulb,
+                          size: AppDimensions.iconSizeSmall,
+                          color: textColor.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: AppSpacing.s8),
+                        Text(
+                          'Tip: Blink slowly and relax your eyes.',
+                          style: AppTypography.body.copyWith(
+                            color: textColor.withValues(alpha: 0.7),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-
-                  // Skip (Esc) button top-right — only when Skip Option is on
-                  if (skipEnabled)
-                    Positioned(
-                      top: AppSpacing.s24,
-                      right: AppSpacing.s24,
-                      child: _SkipButton(
-                        onTap: widget.timer.skipBreak,
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
+
+              // Skip (Esc) button top-right — only when Skip Option is on
+              if (skipEnabled)
+                Positioned(
+                  top: AppSpacing.s24,
+                  right: AppSpacing.s24,
+                  child: _SkipButton(
+                    onTap: widget.timer.skipBreak,
+                  ),
+                ),
+            ],
           ),
         );
       },
