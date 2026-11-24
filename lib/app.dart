@@ -56,11 +56,44 @@ class ArgusApp extends StatelessWidget {
         final breakBackground = AppColors.breakBackgroundForId(
           settingsService.settings.breakSettings.backgroundId,
         );
+        final isBreak = breakTimerService.phase == TimerPhase.breakTime;
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Argus',
           theme: AppTheme.darkTheme(accentColor: accent),
-          home: breakTimerService.phase == TimerPhase.breakTime
+          // Wrap the Navigator, not just the settings page. Dropdown menus,
+          // dialogs and tooltips are routes in this Navigator's Overlay, so
+          // they only follow UI Scale when the whole Navigator sits inside
+          // the scaling wrapper.
+          builder: (context, child) {
+            // The break overlay is fullscreen and must stay unscaled. Passing
+            // the Navigator straight through also keeps the overlay's tree
+            // stable across the timer ticks that rebuild MaterialApp.
+            if (isBreak) {
+              return child!;
+            }
+            return FittedBox(
+              // Keep the whole app exactly as designed at its base 960x640
+              // size, then scale it to fill the window (whose native size is
+              // 960x640 * UI scale). This keeps every token and every page
+              // identical at all scales.
+              fit: BoxFit.fill,
+              child: SizedBox(
+                width: AppDimensions.windowWidth,
+                height: AppDimensions.windowHeight,
+                // Flutter positions dropdown menus using MediaQuery.size.
+                // Inside this wrapper the usable layout is the base size, not
+                // the real (scaled) window, so report the base size here.
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    size: AppDimensions.windowSize,
+                  ),
+                  child: child!,
+                ),
+              ),
+            );
+          },
+          home: isBreak
               ? ValueListenableBuilder<bool>(
                   valueListenable: windowService.overlayReady,
                   builder: (context, ready, child) {
@@ -77,26 +110,13 @@ class ArgusApp extends StatelessWidget {
                   },
                   child: breakOverlayScreen, // Same instance — State is preserved
                 )
-              : FittedBox(
-                  // Keep the whole settings layout exactly as designed at its
-                  // base 960x640 size, then scale the subtree to fill the
-                  // window (whose native size is 960x640 * UI scale). This
-                  // keeps every token and every page identical at all scales.
-                  // Only this branch is wrapped: the break overlay above must
-                  // stay fullscreen and unscaled.
-                  fit: BoxFit.fill,
-                  child: SizedBox(
-                    width: AppDimensions.windowWidth,
-                    height: AppDimensions.windowHeight,
-                    child: SettingsShell(
-                      windowService: windowService,
-                      settingsService: settingsService,
-                      breakTimerService: breakTimerService,
-                      trayService: trayService,
-                      notificationService: notificationService,
-                      updateService: updateService,
-                    ),
-                  ),
+              : SettingsShell(
+                  windowService: windowService,
+                  settingsService: settingsService,
+                  breakTimerService: breakTimerService,
+                  trayService: trayService,
+                  notificationService: notificationService,
+                  updateService: updateService,
                 ),
         );
       },
