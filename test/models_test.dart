@@ -205,12 +205,12 @@ void main() {
       });
       expect(s.appearanceSettings.uiScale, 125);
 
-      // 50 clamps to nearest allowed (90)
+      // 50 clamps to nearest allowed (70)
       final s2 = AppSettings.fromJson({
         'version': 1,
         'appearanceSettings': {'uiScale': 50},
       });
-      expect(s2.appearanceSettings.uiScale, 90);
+      expect(s2.appearanceSettings.uiScale, 70);
     });
 
     test('unknown theme id falls back to default', () {
@@ -345,6 +345,25 @@ void main() {
       });
       expect(s.themeId, AppearanceSettings.defaults.themeId);
       expect(s.uiScale, AppearanceSettings.defaults.uiScale);
+    });
+
+    test('non-number uiScale falls back to 100', () {
+      final s = AppearanceSettings.fromJson({'uiScale': 'big'});
+      expect(s.uiScale, 100);
+    });
+
+    test('every allowed uiScale option round-trips through JSON', () {
+      expect(AppearanceSettings.uiScaleOptions, [70, 80, 90, 100, 110, 125]);
+      for (final scale in AppearanceSettings.uiScaleOptions) {
+        final original = AppearanceSettings(
+          themeId: 'light',
+          accentId: 'teal',
+          uiScale: scale,
+        );
+        final restored = AppearanceSettings.fromJson(original.toJson());
+        expect(restored.uiScale, scale, reason: 'uiScale $scale');
+        expect(restored, original);
+      }
     });
   });
 

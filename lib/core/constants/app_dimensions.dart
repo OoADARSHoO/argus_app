@@ -10,6 +10,20 @@ class AppDimensions {
   static const double windowHeight = 640.0;
   static const Size windowSize = Size(windowWidth, windowHeight);
 
+  /// Window size for a UI scale [percent] (for example 70 -> 672 x 448).
+  ///
+  /// The settings layout is always built at the base [windowSize] and scaled
+  /// to fill the window, so the window has to grow or shrink by the same
+  /// factor. Round to whole pixels because Windows sizes windows in whole
+  /// pixels.
+  static Size scaledWindowSize(int percent) {
+    final factor = percent / 100;
+    return Size(
+      (windowWidth * factor).roundToDouble(),
+      (windowHeight * factor).roundToDouble(),
+    );
+  }
+
   // Title bar
   static const double titleBarHeight = 32.0;
   static const double titleBarButtonWidth = 40.0;

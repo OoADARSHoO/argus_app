@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/constants/app_colors.dart';
+import 'core/constants/app_dimensions.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/break_overlay/break_overlay_screen.dart';
 import 'screens/settings/settings_shell.dart';
@@ -63,8 +64,8 @@ class ArgusApp extends StatelessWidget {
               ? ValueListenableBuilder<bool>(
                   valueListenable: windowService.overlayReady,
                   builder: (context, ready, child) {
-                    // The native window can still be 960x640 while it is
-                    // entering fullscreen. Show only the break background
+                    // The native window can still be settings-sized while it
+                    // is entering fullscreen. Show only the break background
                     // until the window is ready, so the overlay UI is never
                     // laid out at the wrong size.
                     if (!ready) {
@@ -76,13 +77,26 @@ class ArgusApp extends StatelessWidget {
                   },
                   child: breakOverlayScreen, // Same instance — State is preserved
                 )
-              : SettingsShell(
-                  windowService: windowService,
-                  settingsService: settingsService,
-                  breakTimerService: breakTimerService,
-                  trayService: trayService,
-                  notificationService: notificationService,
-                  updateService: updateService,
+              : FittedBox(
+                  // Keep the whole settings layout exactly as designed at its
+                  // base 960x640 size, then scale the subtree to fill the
+                  // window (whose native size is 960x640 * UI scale). This
+                  // keeps every token and every page identical at all scales.
+                  // Only this branch is wrapped: the break overlay above must
+                  // stay fullscreen and unscaled.
+                  fit: BoxFit.fill,
+                  child: SizedBox(
+                    width: AppDimensions.windowWidth,
+                    height: AppDimensions.windowHeight,
+                    child: SettingsShell(
+                      windowService: windowService,
+                      settingsService: settingsService,
+                      breakTimerService: breakTimerService,
+                      trayService: trayService,
+                      notificationService: notificationService,
+                      updateService: updateService,
+                    ),
+                  ),
                 ),
         );
       },

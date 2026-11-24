@@ -16,6 +16,18 @@ class AppearanceSettings {
     uiScale: 100,
   );
 
+  /// Allowed values for [uiScale], in percent, in the order shown in the
+  /// dropdown.
+  ///
+  /// This is the single source of truth: the Appearance page builds its items
+  /// from this list, and [fromJson] clamps unknown values to the nearest entry
+  /// so an old or corrupted settings file can never crash the app.
+  static const List<int> uiScaleOptions = [70, 80, 90, 100, 110, 125];
+
+  /// Display label for a UI scale value, e.g. "100% (Default)".
+  static String uiScaleLabel(int percent) =>
+      percent == defaults.uiScale ? '$percent% (Default)' : '$percent%';
+
   AppearanceSettings copyWith({
     String? themeId,
     String? accentId,
@@ -53,7 +65,7 @@ class AppearanceSettings {
         accentId: _safeAccentId(json['accentId'], defaults.accentId),
         uiScale: _clampAllowed(
           _safeInt(json['uiScale'], defaults.uiScale),
-          _uiScaleOptions,
+          uiScaleOptions,
         ),
       );
     } catch (_) {
@@ -61,7 +73,6 @@ class AppearanceSettings {
     }
   }
 
-  static const List<int> _uiScaleOptions = [90, 100, 110, 125];
   static const List<String> _themeIds = ['dark', 'light', 'system'];
   static const List<String> _accentIds = [
     'blue',

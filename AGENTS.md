@@ -8,7 +8,7 @@ Argus is a **Windows-only desktop app** that enforces the 20-20-20 eye-rest rule
 
 - Tagline: "Your eyes. Our watch."
 - Publisher: Bitekoi Labs
-- Version: 0.2.0 (MVP)
+- Version: 0.2.5 (MVP)
 - The owner is a beginner Flutter developer. **Write simple, readable, well-commented code. Prefer boring and obvious over clever.**
 
 ## 2. Source of truth for design
@@ -235,6 +235,7 @@ Do only the phase you are asked to do.
 10. **Velopack packaging**: local installer and release packaging with Velopack (`vpk pack`), lifecycle hooks in `main.dart`, startup path handling under `%LOCALAPPDATA%\Argus\current\Argus.exe`.
 11. **In-app updater**: check for updates at startup via Velopack and prompt to download/install.
 12. **GitHub Actions release workflow**: CI/CD pipeline that builds, packages, and publishes release artifacts to GitHub Releases.
+13. **Phase 13C: UI scale**: the UI Scale setting (70%–125%) resizes the settings window and scales the settings content to fill it immediately and at startup. The break overlay stays fullscreen and unscaled.
 
 ## 10. Definition of done (every phase)
 

@@ -144,7 +144,23 @@ void main(List<String> args) async {
 
   // If started via --autostart, start HIDDEN in the tray (no settings window).
   // A normal launch shows and focuses the settings window.
-  await windowService.initializeSettingsWindow(startHidden: isAutostart);
+  // The saved UI scale is passed in so it can be applied before the first
+  // show (the layout is scaled to fill the window; see app.dart).
+  await windowService.initializeSettingsWindow(
+    startHidden: isAutostart,
+    uiScale: settingsService.settings.appearanceSettings.uiScale,
+  );
+
+  // Apply UI Scale changes immediately. This listener fires for every settings
+  // change, so only act when the scale itself really changed.
+  int lastUiScale = settingsService.settings.appearanceSettings.uiScale;
+  settingsService.addListener(() {
+    final currentUiScale = settingsService.settings.appearanceSettings.uiScale;
+    if (currentUiScale != lastUiScale) {
+      lastUiScale = currentUiScale;
+      windowService.applyUiScale(currentUiScale);
+    }
+  });
 
   // Create the break timer service once and start it.
   final breakTimerService = BreakTimerService(

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_dimensions.dart';
+import '../models/appearance_settings.dart';
 import 'overlay_log.dart';
 
 /// Service managing desktop window properties, frameless title bar,
@@ -19,6 +21,12 @@ class WindowService {
   bool _overlayWasVisible = false;
   Rect? _overlayBounds;
   bool _isInOverlayMode = false;
+
+  /// Current settings-window size for the active UI scale.
+  ///
+  /// The overlay exit path restores THIS size, not the base 960x640, or every
+  /// break would silently undo the user's UI scale.
+  Size _settingsWindowSize = AppDimensions.windowSize;
 
   /// True once we have asked window_manager for fullscreen. The exit path
   /// must only undo fullscreen if this is set: window_manager's native
@@ -49,8 +57,8 @@ class WindowService {
 
   /// Becomes true when the window is actually fullscreen (or the enter
   /// timeout elapsed and the fallback ran). The break UI listens to this so
-  /// it never lays itself out in a 960x640 window that is still entering
-  /// fullscreen.
+  /// it never lays itself out in a small settings-sized window that is still
+  /// entering fullscreen.
   final ValueNotifier<bool> overlayReady = ValueNotifier<bool>(false);
 
   // Native window changes are not instant. These delays give Windows time to
@@ -71,7 +79,10 @@ class WindowService {
   /// restored. DPI rounding can shift a window by a pixel.
   static const double _boundsTolerance = 2.0;
 
-  /// Initializes the main settings window at 960x640, centered, frameless.
+  /// Initializes the main settings window, centered and frameless.
+  ///
+  /// [uiScale] is applied BEFORE the window is first shown, so the saved scale
+  /// is visible from the first frame (no flash of the base 960x640 window).
   ///
   /// If [startHidden] is true (e.g. launched via `--autostart`), the window
   /// starts hidden in the tray instead of showing and focusing.
@@ -79,7 +90,10 @@ class WindowService {
   /// Also enables prevent-close so that clicking X or pressing Alt+F4 does
   /// not quit the app. Instead, [onWindowClose] hides the window to the tray
   /// and the app keeps running (timer keeps ticking). Only "Exit Argus" quits.
-  Future<void> initializeSettingsWindow({bool startHidden = false}) async {
+  Future<void> initializeSettingsWindow({
+    bool startHidden = false,
+    int? uiScale,
+  }) async {
     await windowManager.ensureInitialized();
 
     const windowOptions = WindowOptions(
@@ -95,6 +109,9 @@ class WindowService {
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setResizable(false);
+      // Apply the saved UI scale before the first show, so the user never
+      // sees the base-size window at the wrong size.
+      await applyUiScale(uiScale ?? AppearanceSettings.defaults.uiScale);
       if (!startHidden) {
         await windowManager.show();
         await windowManager.focus();
@@ -108,6 +125,121 @@ class WindowService {
     // running. Only "Exit Argus" quits.
     await windowManager.setPreventClose(true);
     windowManager.addListener(_WindowListener(onCloseRequested: onCloseRequested));
+  }
+
+  /// Applies a UI scale [percent]: sizes the settings window and recenters it
+  /// on the monitor it is currently on.
+  ///
+  /// The settings layout is always built at 960x640 and scaled to fill the
+  /// window (see app.dart), so the window itself must be 960x640 * scale.
+  ///
+  /// If the scaled window would not fit the monitor's work area (for example
+  /// 125% on a small laptop), the largest allowed scale that does fit is used
+  /// for the window. The saved setting is left untouched, so the user's choice
+  /// comes back on a larger screen.
+  Future<void> applyUiScale(int percent) async {
+    // Changing settings is impossible while the fullscreen break overlay is
+    // up, and resizing then would fight the overlay. Apply on the next change.
+    if (_isInOverlayMode) {
+      OverlayLog.write('UI SCALE $percent% skipped: in overlay mode');
+      return;
+    }
+
+    final monitor = await _currentMonitor();
+    final effectivePercent = _largestFittingScale(percent, monitor);
+    final size = AppDimensions.scaledWindowSize(effectivePercent);
+    _settingsWindowSize = size;
+
+    OverlayLog.write(
+      'UI SCALE requested=$percent% effective=$effectivePercent% '
+      'size=${size.width.toStringAsFixed(0)}x${size.height.toStringAsFixed(0)}',
+    );
+
+    try {
+      // Min and max are set FIRST so the fixed-size window accepts the new
+      // size, then setSize actually changes it.
+      await windowManager.setMinimumSize(size);
+      await windowManager.setMaximumSize(size);
+      await windowManager.setSize(size);
+      await _centerOnMonitor(monitor, size);
+    } catch (e, s) {
+      OverlayLog.write('UI SCALE apply FAILED: $e\n$s');
+    }
+  }
+
+  /// The display that currently contains the settings window, or the primary
+  /// display if that cannot be determined.
+  Future<Display?> _currentMonitor() async {
+    try {
+      final displays = await screenRetriever.getAllDisplays();
+      if (displays.isEmpty) return null;
+      final bounds = await windowManager.getBounds();
+      // Try the center first, then the top-left: a window can straddle two
+      // monitors, and the center is the better guess for where it "lives".
+      return _displayAt(displays, bounds.center) ??
+          _displayAt(displays, bounds.topLeft) ??
+          await screenRetriever.getPrimaryDisplay();
+    } catch (e) {
+      OverlayLog.write('UI SCALE monitor read FAILED: $e');
+      return null;
+    }
+  }
+
+  /// Returns the display whose work area contains [point], if any.
+  Display? _displayAt(List<Display> displays, Offset point) {
+    for (final display in displays) {
+      if (_workAreaOf(display).contains(point)) return display;
+    }
+    return null;
+  }
+
+  /// Monitor work area (screen minus taskbar) in logical pixels.
+  ///
+  /// screen_retriever reports this in the same logical units as
+  /// window_manager's sizes, so the numbers can be compared directly.
+  Rect _workAreaOf(Display display) {
+    final position = display.visiblePosition ?? Offset.zero;
+    final size = display.visibleSize ?? display.size;
+    return Rect.fromLTWH(position.dx, position.dy, size.width, size.height);
+  }
+
+  /// Largest allowed scale no larger than [requestedPercent] whose window fits
+  /// [monitor]'s work area.
+  ///
+  /// Falls back to the smallest allowed option when even that does not fit,
+  /// and to [requestedPercent] when monitor data is unavailable (better to
+  /// honour the setting than to guess).
+  int _largestFittingScale(int requestedPercent, Display? monitor) {
+    if (monitor == null) return requestedPercent;
+    final workArea = _workAreaOf(monitor);
+    var result = AppearanceSettings.uiScaleOptions.first;
+    for (final percent in AppearanceSettings.uiScaleOptions) {
+      if (percent > requestedPercent) continue;
+      final size = AppDimensions.scaledWindowSize(percent);
+      if (size.width <= workArea.width && size.height <= workArea.height) {
+        result = percent;
+      }
+    }
+    return result;
+  }
+
+  /// Centers [size] on [monitor]'s work area.
+  Future<void> _centerOnMonitor(Display? monitor, Size size) async {
+    try {
+      if (monitor == null) {
+        // Without display data, use the plugin's centering (it picks the
+        // display under the cursor) rather than leaving the window off-center.
+        await windowManager.center();
+        return;
+      }
+      final workArea = _workAreaOf(monitor);
+      await windowManager.setPosition(Offset(
+        workArea.left + (workArea.width - size.width) / 2,
+        workArea.top + (workArea.height - size.height) / 2,
+      ));
+    } catch (e, s) {
+      OverlayLog.write('UI SCALE recenter FAILED: $e\n$s');
+    }
   }
 
   /// Minimizes the application window.
@@ -250,7 +382,7 @@ class WindowService {
 
     try {
       // Hide the settings frame before the native window changes shape.
-      // Without this the old 960x640 content is stretched over the screen
+      // Without this the old settings content is stretched over the screen
       // during the transition, and the reverse happens on the way out.
       await _loggedStep('ENTER setOpacity(0)', () async {
         await windowManager.setOpacity(0);
@@ -298,7 +430,8 @@ class WindowService {
       });
 
       // window_manager reports the cached fullscreen flag, which can be true
-      // while the window is still 960x640. Poll the real bounds instead.
+      // while the window is still the settings size. Poll the real bounds
+      // instead.
       final becameFullScreen = await _waitForFullScreen();
 
       // The break may have been skipped while we polled. Do not maximize or
@@ -423,8 +556,9 @@ class WindowService {
   /// Windows these calls can return without the window actually changing.
   Future<void> _restoreWindow() async {
     // Mask the whole transition. The Flutter tree may still be showing the
-    // last overlay frame while the native window shrinks to 960x640; without
-    // opacity 0 the user sees the break UI stuck in a small window.
+    // last overlay frame while the native window shrinks to the scaled
+    // settings size; without opacity 0 the user sees the break UI stuck in a
+    // small window.
     await _loggedStep('EXIT setOpacity(0)', () async {
       await windowManager.setOpacity(0);
     });
@@ -454,7 +588,9 @@ class WindowService {
       }
 
       // Restore the exact pre-break geometry. Resizable must be on while the
-      // bounds change, then the fixed 960x640 limits go back on.
+      // bounds change, then the fixed limits for the current UI scale go back
+      // on. Restoring the base 960x640 here would undo the user's scale after
+      // every break.
       await _loggedStep('EXIT setResizable(true)', () async {
         await windowManager.setResizable(true);
       });
@@ -463,11 +599,11 @@ class WindowService {
           await windowManager.setBounds(_overlayBounds!);
         });
       }
-      await _loggedStep('EXIT setMinimumSize(windowSize)', () async {
-        await windowManager.setMinimumSize(AppDimensions.windowSize);
+      await _loggedStep('EXIT setMinimumSize(scaled)', () async {
+        await windowManager.setMinimumSize(_settingsWindowSize);
       });
-      await _loggedStep('EXIT setMaximumSize(windowSize)', () async {
-        await windowManager.setMaximumSize(AppDimensions.windowSize);
+      await _loggedStep('EXIT setMaximumSize(scaled)', () async {
+        await windowManager.setMaximumSize(_settingsWindowSize);
       });
       await _loggedStep('EXIT setResizable(false)', () async {
         await windowManager.setResizable(false);
@@ -502,7 +638,7 @@ class WindowService {
 
     // Make sure Flutter has painted the settings screen (or the hidden
     // window) before it becomes visible again. Without this wait the user
-    // can see the old overlay frame at the restored 960x640 size.
+    // can see the old overlay frame at the restored settings size.
     await _waitForFrame();
   }
 

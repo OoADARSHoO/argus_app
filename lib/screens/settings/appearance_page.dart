@@ -3,6 +3,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../models/accent_color.dart';
+import '../../models/appearance_settings.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/common/accent_swatch.dart';
 import '../../widgets/common/app_dropdown.dart';
@@ -18,13 +19,6 @@ class AppearancePage extends StatelessWidget {
   });
 
   final SettingsService settings;
-
-  static const List<MapEntry<int, String>> uiScaleOptions = [
-    MapEntry(90, '90%'),
-    MapEntry(100, '100% (Default)'),
-    MapEntry(110, '110%'),
-    MapEntry(125, '125%'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -118,8 +112,11 @@ class AppearancePage extends StatelessWidget {
           control: AppDropdown<int>(
             value: s.uiScale,
             width: AppDimensions.dropdownWidth,
-            items: uiScaleOptions
-                .map((opt) => AppDropdownItem(value: opt.key, label: opt.value))
+            items: AppearanceSettings.uiScaleOptions
+                .map((percent) => AppDropdownItem(
+                      value: percent,
+                      label: AppearanceSettings.uiScaleLabel(percent),
+                    ))
                 .toList(),
             onChanged: (val) {
               if (val != null) {
