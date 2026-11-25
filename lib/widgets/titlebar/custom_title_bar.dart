@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../icons/app_icons.dart';
 
 /// Custom frameless title bar for Argus.
@@ -37,9 +38,11 @@ class CustomTitleBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return Container(
       height: AppDimensions.titleBarHeight,
-      color: AppColors.background,
+      color: palette.background,
       child: Row(
         children: [
           // Wordmark area (also draggable)
@@ -49,9 +52,11 @@ class CustomTitleBar extends StatelessWidget {
                 horizontal: AppSpacing.s16,
               ),
               alignment: Alignment.centerLeft,
-              child: const Text(
+              child: Text(
                 'ARGUS',
-                style: AppTypography.titleBarWordmark,
+                style: AppTypography.titleBarWordmark.copyWith(
+                  color: palette.textPrimary,
+                ),
               ),
             ),
           ),
@@ -70,7 +75,7 @@ class CustomTitleBar extends StatelessWidget {
             icon: AppIcons.minimize,
             tooltip: 'Minimize',
             onPressed: _handleMinimize,
-            hoverColor: AppColors.surfaceElevated,
+            hoverColor: palette.surfaceElevated,
           ),
 
           // Close window button (subtle red-tinted hover)
@@ -111,9 +116,10 @@ class _TitleBarButtonState extends State<_TitleBarButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final foregroundColor = _isHovered && widget.hoverIconColor != null
         ? widget.hoverIconColor!
-        : AppColors.textSecondary;
+        : palette.textSecondary;
 
     Widget button = MouseRegion(
       cursor: SystemMouseCursors.click,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Icon button for Argus.
 /// 40x40 container with a 24px icon.
@@ -36,6 +37,7 @@ class _IconButtonWidgetState extends State<IconButtonWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final isEnabled = widget.isEnabled;
 
     final Color backgroundColor;
@@ -43,16 +45,16 @@ class _IconButtonWidgetState extends State<IconButtonWidget> {
 
     if (!isEnabled) {
       backgroundColor = AppColors.transparent;
-      foregroundColor = AppColors.textDisabled;
+      foregroundColor = palette.textDisabled;
     } else if (_isPressed) {
-      backgroundColor = AppColors.border;
-      foregroundColor = widget.iconColor ?? AppColors.textPrimary;
+      backgroundColor = palette.border;
+      foregroundColor = widget.iconColor ?? palette.textPrimary;
     } else if (_isHovered) {
-      backgroundColor = AppColors.surfaceElevated;
-      foregroundColor = widget.iconColor ?? AppColors.textPrimary;
+      backgroundColor = palette.surfaceElevated;
+      foregroundColor = widget.iconColor ?? palette.textPrimary;
     } else {
       backgroundColor = AppColors.transparent;
-      foregroundColor = widget.iconColor ?? AppColors.textPrimary;
+      foregroundColor = widget.iconColor ?? palette.textPrimary;
     }
 
     Widget button = MouseRegion(

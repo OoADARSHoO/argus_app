@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/common/primary_button.dart';
 import '../../widgets/common/progress_ring.dart';
@@ -34,18 +35,21 @@ class SupportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final accent = settings.accentColor;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Page header
-        const Text(
+        Text(
           'Support Argus',
-          style: AppTypography.heading2,
+          style: AppTypography.heading2.copyWith(color: palette.textPrimary),
         ),
         const SizedBox(height: AppSpacing.s4),
-        const Text(
+        Text(
           'Your support keeps Argus alive.',
-          style: AppTypography.caption,
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.s24),
 
@@ -61,34 +65,42 @@ class SupportPage extends StatelessWidget {
                 value: progressFraction,
                 size: AppDimensions.progressRingSupport,
                 strokeWidth: AppDimensions.progressRingStrokeWidthSupport,
-                color: settings.accentColor,
+                // In light mode the accent is darkened just enough to stay
+                // visible as a graphical object on the white surface.
+                color: palette.accentText(accent),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Money needed\nfor the month',
                       textAlign: TextAlign.center,
-                      style: AppTypography.caption,
+                      style: AppTypography.caption.copyWith(
+                        color: palette.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.s8),
-                    const Text(
+                    Text(
                       r'$128 / $200',
-                      style: AppTypography.heading2,
+                      style: AppTypography.heading2.copyWith(
+                        color: palette.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     Text(
                       '64%',
                       style: AppTypography.bodySemibold.copyWith(
-                        color: settings.accentColor,
+                        color: palette.accentText(accent),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.s24),
-              const Text(
+              Text(
                 'Every donation helps keep Argus free, independent and ad-free.',
-                style: AppTypography.caption,
+                style: AppTypography.caption.copyWith(
+                  color: palette.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.s20),
@@ -98,7 +110,7 @@ class SupportPage extends StatelessWidget {
                   PrimaryButton(
                     label: 'Donate Now',
                     icon: AppIcons.heart,
-                    color: settings.accentColor,
+                    color: accent,
                     onPressed: () => _launchUrl('https://ko-fi.com/bitekoi'),
                   ),
                   const SizedBox(width: AppSpacing.s12),

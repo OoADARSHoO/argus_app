@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Circular progress ring for Argus.
-/// Draws a background track in border color and a foreground progress arc
-/// starting at 12 o'clock with round stroke caps.
+/// Draws a background track and a foreground progress arc starting at
+/// 12 o'clock with round stroke caps.
 /// Reusable across sizes: 120px (Components), 160px (Break screen), and large (Support donut).
 class ProgressRing extends StatelessWidget {
   const ProgressRing({
@@ -13,6 +13,7 @@ class ProgressRing extends StatelessWidget {
     required this.size,
     required this.strokeWidth,
     required this.color,
+    this.trackColor,
     this.child,
   });
 
@@ -28,6 +29,13 @@ class ProgressRing extends StatelessWidget {
   /// Color of the active progress arc.
   final Color color;
 
+  /// Optional color of the background track.
+  ///
+  /// Settings pages leave this null so the track follows the active theme.
+  /// The break overlay passes a fixed dark color because the overlay is not
+  /// themed and must never pick up light colors.
+  final Color? trackColor;
+
   /// Optional widget displayed in the center of the ring.
   final Widget? child;
 
@@ -42,7 +50,7 @@ class ProgressRing extends StatelessWidget {
           value: value,
           strokeWidth: strokeWidth,
           color: color,
-          trackColor: AppColors.border,
+          trackColor: trackColor ?? context.palette.border,
         ),
         child: child != null ? Center(child: child) : null,
       ),

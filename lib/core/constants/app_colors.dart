@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Design color tokens for Argus desktop application.
+/// Theme-independent color tokens for Argus.
+///
+/// Colors that change between the dark and light themes (background, surface,
+/// borders, text hierarchy, toggle track) live in `AppPalette` instead. This
+/// file keeps only colors that are the same in every theme: brand accents,
+/// status colors, black/white/transparent, and the break-screen backgrounds.
 /// All hex values match AGENTS.md (Section 4) and design blueprints.
 class AppColors {
   AppColors._();
@@ -9,21 +14,6 @@ class AppColors {
   static const Color primary = Color(0xFF5B8CFF);
   static const Color primaryLight = Color(0xFF7BA6FF);
   static const Color primaryDark = Color(0xFF2E5DFF);
-
-  // Background and surface colors
-  static const Color background = Color(0xFF0E0E10);
-  static const Color surface = Color(0xFF16161B);
-  static const Color surfaceElevated = Color(0xFF1E1E24);
-
-  // Borders and dividers
-  static const Color border = Color(0xFF2A2A33);
-  static const Color divider = Color(0xFF24242C);
-
-  // Typography / Text hierarchy
-  static const Color textPrimary = Color(0xFFF5F5F5);
-  static const Color textSecondary = Color(0xFFA1A1AA);
-  static const Color textTertiary = Color(0xFF71717A);
-  static const Color textDisabled = Color(0xFF52525B);
 
   // Status and feedback colors
   static const Color success = Color(0xFF22C55E);
@@ -47,9 +37,6 @@ class AppColors {
     accentPink,
     accentTeal,
   ];
-
-  // Toggle switch inactive state
-  static const Color toggleInactive = Color(0xFF3F3F46);
 
   // Utility colors
   static const Color transparent = Colors.transparent;

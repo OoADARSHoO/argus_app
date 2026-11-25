@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../icons/app_icons.dart';
 
 /// Item model for [AppDropdown].
@@ -20,7 +20,7 @@ class AppDropdownItem<T> {
 /// Dropdown selector for Argus.
 /// 36px high, surfaceElevated background, 1px border.
 /// The selected value is left-aligned with the chevron pinned to the far right.
-/// Popup menu is styled for the dark aesthetic.
+/// Popup menu follows the active theme.
 class AppDropdown<T> extends StatelessWidget {
   const AppDropdown({
     super.key,
@@ -39,6 +39,8 @@ class AppDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return Container(
       height: AppDimensions.dropdownHeight,
       width: width,
@@ -46,10 +48,10 @@ class AppDropdown<T> extends StatelessWidget {
         horizontal: AppSpacing.inputPaddingHorizontal,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: palette.surfaceElevated,
         borderRadius: AppRadius.inputRadius,
         border: Border.all(
-          color: AppColors.border,
+          color: palette.border,
           width: AppDimensions.borderWidth,
         ),
       ),
@@ -60,15 +62,15 @@ class AppDropdown<T> extends StatelessWidget {
           onChanged: onChanged,
           isExpanded: true,
           isDense: true,
-          dropdownColor: AppColors.surfaceElevated,
+          dropdownColor: palette.surfaceElevated,
           borderRadius: AppRadius.borderR8,
           alignment: AlignmentDirectional.centerStart,
-          icon: const Icon(
+          icon: Icon(
             AppIcons.chevronDown,
             size: AppDimensions.iconSizeSmall,
-            color: AppColors.textSecondary,
+            color: palette.textSecondary,
           ),
-          style: AppTypography.body,
+          style: AppTypography.body.copyWith(color: palette.textPrimary),
           items: items.map((item) {
             return DropdownMenuItem<T>(
               value: item.value,
@@ -77,8 +79,8 @@ class AppDropdown<T> extends StatelessWidget {
                 item.label,
                 style: AppTypography.body.copyWith(
                   color: isEnabled
-                      ? AppColors.textPrimary
-                      : AppColors.textDisabled,
+                      ? palette.textPrimary
+                      : palette.textDisabled,
                 ),
               ),
             );

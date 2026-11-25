@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
+import '../../core/theme/app_palette.dart';
 import '../icons/app_icons.dart';
 import 'sidebar_nav_item.dart';
 
@@ -30,15 +30,16 @@ class SidebarNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     const horizontalPadding = (AppDimensions.sidebarWidth - AppDimensions.sidebarItemWidth) / 2;
 
     return Container(
       width: AppDimensions.sidebarWidth,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: palette.surface,
         border: Border(
           right: BorderSide(
-            color: AppColors.divider,
+            color: palette.divider,
             width: AppDimensions.borderWidth,
           ),
         ),

@@ -4,6 +4,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Text input field for Argus.
 /// 36px high in single-line mode, with 10px vertical x 14px horizontal padding.
@@ -37,29 +38,32 @@ class AppTextInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final effectiveMinLines = multiline ? (minLines ?? 3) : 1;
     final effectiveMaxLines = multiline ? (maxLines ?? 5) : 1;
 
     final inputDecoration = InputDecoration(
       isDense: true,
       filled: true,
-      fillColor: AppColors.surfaceElevated,
+      fillColor: palette.surfaceElevated,
       hintText: hintText,
-      hintStyle: AppTypography.inputHint,
+      hintStyle: AppTypography.inputHint.copyWith(
+        color: palette.textTertiary,
+      ),
       contentPadding: multiline
           ? AppSpacing.inputPadding
           : const EdgeInsets.symmetric(
               horizontal: AppSpacing.inputPaddingHorizontal,
               vertical: AppSpacing.s8,
             ),
-      enabledBorder: const OutlineInputBorder(
+      enabledBorder: OutlineInputBorder(
         borderRadius: AppRadius.inputRadius,
         borderSide: BorderSide(
-          color: AppColors.border,
+          color: palette.border,
           width: AppDimensions.borderWidth,
         ),
       ),
-      focusedBorder: const OutlineInputBorder(
+      focusedBorder: OutlineInputBorder(
         borderRadius: AppRadius.inputRadius,
         borderSide: BorderSide(
           color: AppColors.primary,
@@ -69,7 +73,7 @@ class AppTextInput extends StatelessWidget {
       disabledBorder: OutlineInputBorder(
         borderRadius: AppRadius.inputRadius,
         borderSide: BorderSide(
-          color: AppColors.border.withValues(alpha: 0.5),
+          color: palette.border.withValues(alpha: 0.5),
           width: AppDimensions.borderWidth,
         ),
       ),
@@ -84,8 +88,8 @@ class AppTextInput extends StatelessWidget {
       maxLines: effectiveMaxLines,
       onChanged: onChanged,
       style: enabled
-          ? AppTypography.input
-          : AppTypography.input.copyWith(color: AppColors.textDisabled),
+          ? AppTypography.input.copyWith(color: palette.textPrimary)
+          : AppTypography.input.copyWith(color: palette.textDisabled),
       cursorColor: AppColors.primary,
       decoration: inputDecoration,
     );

@@ -42,7 +42,9 @@ All visual values live in `lib/core/constants/` as tokens. **Never hardcode a co
 
 ## 4. Design tokens
 
-### Colors (`app_colors.dart`)
+### Colors (`app_colors.dart`, `app_palette.dart`)
+
+Theme-dependent colors (`background`, `surface`, `surfaceElevated`, `border`, `divider`, `textPrimary`, `textSecondary`, `textTertiary`, `textDisabled`, `toggleInactive`) live in `AppPalette` (`lib/core/theme/app_palette.dart`) as a `ThemeExtension` with a `dark` and a `light` palette. Widgets read the active one with `context.palette`. Everything that does not change per theme (accent colors, success/warning/error/info, white/black/transparent, break backgrounds) stays in `AppColors`. The table below lists the dark palette values (identical to the pre-Phase 13E look):
 
 | Token | Hex |
 |---|---|
@@ -236,6 +238,7 @@ Do only the phase you are asked to do.
 11. **In-app updater**: check for updates at startup via Velopack and prompt to download/install.
 12. **GitHub Actions release workflow**: CI/CD pipeline that builds, packages, and publishes release artifacts to GitHub Releases.
 13. **Phase 13C: UI scale**: the UI Scale setting (70%–125%) resizes the settings window and scales the settings content to fill it immediately and at startup. The break overlay stays fullscreen and unscaled.
+14. **Phase 13E: Light/System theme**: Dark, Light, and System themes driven by `AppPalette`; System follows the Windows app mode live. The break overlay stays fixed dark in every theme.
 
 ## 10. Definition of done (every phase)
 

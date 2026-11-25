@@ -12,11 +12,13 @@ import 'services/update_service.dart';
 import 'services/window_service.dart';
 
 /// Root widget for Argus desktop application.
-/// Sets up MaterialApp, dark theme, and displays either the SettingsShell
-/// or the BreakOverlayScreen depending on the timer phase.
+/// Sets up MaterialApp with the saved light/dark/system theme and displays
+/// either the SettingsShell or the BreakOverlayScreen depending on the timer
+/// phase.
 ///
 /// Single window, two modes: the settings window or the fullscreen break
-/// overlay. Rebuilds when settings change so the accent color is applied live.
+/// overlay. Rebuilds when settings change so the accent color and theme are
+/// applied live.
 class ArgusApp extends StatelessWidget {
   const ArgusApp({
     super.key,
@@ -53,6 +55,7 @@ class ArgusApp extends StatelessWidget {
       ]),
       builder: (context, _) {
         final accent = settingsService.accentColor;
+        final themeId = settingsService.settings.appearanceSettings.themeId;
         final breakBackground = AppColors.breakBackgroundForId(
           settingsService.settings.breakSettings.backgroundId,
         );
@@ -60,7 +63,13 @@ class ArgusApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Argus',
-          theme: AppTheme.darkTheme(accentColor: accent),
+          // MaterialApp resolves `system` from platformBrightness. On Windows
+          // the Flutter engine watches the "app mode" registry value and
+          // updates platformBrightness live, so System follows Windows without
+          // an extra observer.
+          theme: AppTheme.lightTheme(accentColor: accent),
+          darkTheme: AppTheme.darkTheme(accentColor: accent),
+          themeMode: AppTheme.themeModeForId(themeId),
           // Wrap the Navigator, not just the settings page. Dropdown menus,
           // dialogs and tooltips are routes in this Navigator's Overlay, so
           // they only follow UI Scale when the whole Navigator sits inside

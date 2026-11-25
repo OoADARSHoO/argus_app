@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Toggle switch for Argus.
 /// 44x24 track, 20px circular knob.
@@ -23,12 +24,16 @@ class AppToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final activeColor = accentColor ?? AppColors.primary;
+    final inactiveColor = isEnabled
+        ? palette.toggleInactive
+        : palette.toggleInactive.withValues(alpha: 0.5);
     final trackColor = value
         ? (isEnabled ? activeColor : activeColor.withValues(alpha: 0.5))
-        : (isEnabled ? AppColors.toggleInactive : AppColors.toggleInactive.withValues(alpha: 0.5));
+        : inactiveColor;
 
-    final knobColor = isEnabled ? AppColors.white : AppColors.textDisabled;
+    final knobColor = isEnabled ? AppColors.white : palette.textDisabled;
 
     return MouseRegion(
       cursor: isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,

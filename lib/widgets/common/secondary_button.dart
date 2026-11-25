@@ -4,6 +4,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Secondary action button for Argus.
 /// 40px high, transparent fill with 1px border, rounded corners (r6), with hover/pressed states.
@@ -34,6 +35,7 @@ class _SecondaryButtonState extends State<SecondaryButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final isEnabled = widget.isEnabled;
 
     final Color backgroundColor;
@@ -42,20 +44,20 @@ class _SecondaryButtonState extends State<SecondaryButton> {
 
     if (!isEnabled) {
       backgroundColor = AppColors.transparent;
-      borderColor = AppColors.border;
-      foregroundColor = AppColors.textDisabled;
+      borderColor = palette.border;
+      foregroundColor = palette.textDisabled;
     } else if (_isPressed) {
-      backgroundColor = AppColors.border;
-      borderColor = AppColors.border;
-      foregroundColor = widget.textColor ?? AppColors.textPrimary;
+      backgroundColor = palette.border;
+      borderColor = palette.border;
+      foregroundColor = widget.textColor ?? palette.textPrimary;
     } else if (_isHovered) {
-      backgroundColor = AppColors.surfaceElevated;
-      borderColor = AppColors.border;
-      foregroundColor = widget.textColor ?? AppColors.textPrimary;
+      backgroundColor = palette.surfaceElevated;
+      borderColor = palette.border;
+      foregroundColor = widget.textColor ?? palette.textPrimary;
     } else {
       backgroundColor = AppColors.transparent;
-      borderColor = AppColors.border;
-      foregroundColor = widget.textColor ?? AppColors.textPrimary;
+      borderColor = palette.border;
+      foregroundColor = widget.textColor ?? palette.textPrimary;
     }
 
     return MouseRegion(

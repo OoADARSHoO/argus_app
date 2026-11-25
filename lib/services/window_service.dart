@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
-import '../core/constants/app_colors.dart';
 import '../core/constants/app_dimensions.dart';
 import '../models/appearance_settings.dart';
 import 'overlay_log.dart';
@@ -93,15 +92,16 @@ class WindowService {
   Future<void> initializeSettingsWindow({
     bool startHidden = false,
     int? uiScale,
+    required Color backgroundColor,
   }) async {
     await windowManager.ensureInitialized();
 
-    const windowOptions = WindowOptions(
+    final windowOptions = WindowOptions(
       size: AppDimensions.windowSize,
       minimumSize: AppDimensions.windowSize,
       maximumSize: AppDimensions.windowSize,
       center: true,
-      backgroundColor: AppColors.background,
+      backgroundColor: backgroundColor,
       skipTaskbar: false,
       title: 'Argus',
       titleBarStyle: TitleBarStyle.hidden,
@@ -125,6 +125,19 @@ class WindowService {
     // running. Only "Exit Argus" quits.
     await windowManager.setPreventClose(true);
     windowManager.addListener(_WindowListener(onCloseRequested: onCloseRequested));
+  }
+
+  /// Updates the native window background brush.
+  ///
+  /// The brush can be visible for a frame before Flutter paints (startup and
+  /// native resizes), so it must follow the active theme instead of keeping
+  /// the dark startup color forever.
+  Future<void> applyBackgroundColor(Color color) async {
+    try {
+      await windowManager.setBackgroundColor(color);
+    } catch (e) {
+      OverlayLog.write('BACKGROUND color FAILED: $e');
+    }
   }
 
   /// Applies a UI scale [percent]: sizes the settings window and recenters it

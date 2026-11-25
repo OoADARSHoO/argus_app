@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/settings_service.dart';
 import '../../services/update_service.dart';
 import '../../widgets/common/app_dropdown.dart';
@@ -39,19 +40,20 @@ class GeneralPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final s = settings.settings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Page header
-        const Text(
+        Text(
           'General',
-          style: AppTypography.heading2,
+          style: AppTypography.heading2.copyWith(color: palette.textPrimary),
         ),
         const SizedBox(height: AppSpacing.s4),
-        const Text(
+        Text(
           'Configure general behavior of Argus.',
-          style: AppTypography.caption,
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.s24),
 

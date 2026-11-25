@@ -4,6 +4,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Primary action button for Argus.
 /// 40px high, filled with accent color, rounded corners (r6), with hover/pressed states.
@@ -36,6 +37,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final isEnabled = widget.isEnabled;
     final baseColor = widget.color ?? AppColors.primary;
 
@@ -43,8 +45,8 @@ class _PrimaryButtonState extends State<PrimaryButton> {
     final Color foregroundColor;
 
     if (!isEnabled) {
-      backgroundColor = AppColors.surfaceElevated;
-      foregroundColor = AppColors.textDisabled;
+      backgroundColor = palette.surfaceElevated;
+      foregroundColor = palette.textDisabled;
     } else if (_isPressed) {
       backgroundColor = AppColors.primaryDark;
       foregroundColor = widget.textColor ?? AppColors.white;

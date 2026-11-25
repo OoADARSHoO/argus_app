@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/break_timer_service.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/common/progress_ring.dart';
@@ -191,6 +192,9 @@ class _BreakOverlayScreenState extends State<BreakOverlayScreen>
                               strokeWidth:
                                   AppDimensions.progressRingStrokeWidthBreak,
                               color: textColor,
+                              // The break overlay is not themed: its ring
+                              // track stays the fixed dark border color.
+                              trackColor: AppPalette.dark.border,
                               child: Text(
                                 currentSecondsLeft.toString(),
                                 style: AppTypography.countdownNumber
@@ -264,9 +268,10 @@ class _SkipButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.textPrimary,
+        // Fixed dark chrome, independent of the active settings theme.
+        foregroundColor: AppPalette.dark.textPrimary,
         side: BorderSide(
-          color: AppColors.border,
+          color: AppPalette.dark.border,
           width: AppDimensions.borderWidth,
         ),
         padding: const EdgeInsets.symmetric(
@@ -274,9 +279,12 @@ class _SkipButton extends StatelessWidget {
           vertical: AppSpacing.s8,
         ),
       ),
-      child: const Text(
+      child: Text(
         'Skip (Esc)',
-        style: TextStyle(fontSize: 11),
+        style: TextStyle(
+          fontSize: 11,
+          color: AppPalette.dark.textPrimary,
+        ),
       ),
     );
   }

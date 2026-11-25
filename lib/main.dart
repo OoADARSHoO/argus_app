@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'app.dart';
+import 'core/theme/app_theme.dart';
 import 'services/break_timer_service.dart';
 import 'services/notification_service.dart';
 import 'services/overlay_log.dart';
@@ -146,10 +147,32 @@ void main(List<String> args) async {
   // A normal launch shows and focuses the settings window.
   // The saved UI scale is passed in so it can be applied before the first
   // show (the layout is scaled to fill the window; see app.dart).
+  //
+  // The native window background is shown before Flutter's first frame, so it
+  // must already match the saved theme. Otherwise a Light/System user sees a
+  // dark flash while the window opens.
   await windowService.initializeSettingsWindow(
     startHidden: isAutostart,
     uiScale: settingsService.settings.appearanceSettings.uiScale,
+    backgroundColor: AppTheme.startupBackgroundFor(
+      settingsService.settings.appearanceSettings.themeId,
+    ),
   );
+
+  // Keep the native background in sync when the theme changes. Flutter paints
+  // the UI itself, but the native brush can still show for a frame during a
+  // native resize (for example when the UI Scale changes).
+  String lastThemeId = settingsService.settings.appearanceSettings.themeId;
+  settingsService.addListener(() {
+    final currentThemeId =
+        settingsService.settings.appearanceSettings.themeId;
+    if (currentThemeId != lastThemeId) {
+      lastThemeId = currentThemeId;
+      windowService.applyBackgroundColor(
+        AppTheme.startupBackgroundFor(currentThemeId),
+      );
+    }
+  });
 
   // Apply UI Scale changes immediately. This listener fires for every settings
   // change, so only act when the scale itself really changed.

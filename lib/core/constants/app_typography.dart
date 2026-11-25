@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
 
 /// Typography tokens for Argus desktop application.
 /// All text styles use the bundled Inter font family.
+///
+/// Styles intentionally carry no color. Colors change with the theme, so the
+/// theme supplies them through `ThemeData.textTheme`, or a widget applies
+/// `context.palette.textPrimary` (etc.) with `copyWith`. A baked-in color here
+/// would make text invisible in one of the themes.
 class AppTypography {
   AppTypography._();
 
@@ -15,7 +19,6 @@ class AppTypography {
     height: 40 / 32,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.5,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle heading2 = TextStyle(
@@ -24,7 +27,6 @@ class AppTypography {
     height: 28 / 20,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.3,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle bodyLarge = TextStyle(
@@ -33,7 +35,6 @@ class AppTypography {
     height: 24 / 16,
     fontWeight: FontWeight.w500,
     letterSpacing: 0,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle body = TextStyle(
@@ -42,7 +43,6 @@ class AppTypography {
     height: 20 / 14,
     fontWeight: FontWeight.w400,
     letterSpacing: 0,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle bodySecondary = TextStyle(
@@ -51,7 +51,6 @@ class AppTypography {
     height: 20 / 14,
     fontWeight: FontWeight.w400,
     letterSpacing: 0,
-    color: AppColors.textSecondary,
   );
 
   static const TextStyle bodySemibold = TextStyle(
@@ -60,7 +59,6 @@ class AppTypography {
     height: 20 / 14,
     fontWeight: FontWeight.w600,
     letterSpacing: 0,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle button = TextStyle(
@@ -70,7 +68,6 @@ class AppTypography {
     leadingDistribution: TextLeadingDistribution.even,
     fontWeight: FontWeight.w600,
     letterSpacing: 0,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle input = TextStyle(
@@ -79,7 +76,6 @@ class AppTypography {
     height: 20 / 14,
     fontWeight: FontWeight.w400,
     letterSpacing: 0,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle inputHint = TextStyle(
@@ -88,7 +84,6 @@ class AppTypography {
     height: 20 / 14,
     fontWeight: FontWeight.w400,
     letterSpacing: 0,
-    color: AppColors.textTertiary,
   );
 
   static const TextStyle badge = TextStyle(
@@ -98,7 +93,6 @@ class AppTypography {
     leadingDistribution: TextLeadingDistribution.even,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.5,
-    color: AppColors.primary,
   );
 
   static const TextStyle caption = TextStyle(
@@ -107,7 +101,6 @@ class AppTypography {
     height: 16 / 12,
     fontWeight: FontWeight.w400,
     letterSpacing: 0,
-    color: AppColors.textSecondary,
   );
 
   static const TextStyle small = TextStyle(
@@ -116,7 +109,6 @@ class AppTypography {
     height: 14 / 11,
     fontWeight: FontWeight.w400,
     letterSpacing: 0,
-    color: AppColors.textSecondary,
   );
 
   // Screen-specific typography tokens (derived from blueprints)
@@ -125,7 +117,6 @@ class AppTypography {
     fontSize: 40,
     height: 48 / 40,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle breakBody = TextStyle(
@@ -133,7 +124,6 @@ class AppTypography {
     fontSize: 17,
     height: 26 / 17,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
   );
 
   static const TextStyle countdownNumber = TextStyle(
@@ -141,7 +131,6 @@ class AppTypography {
     fontSize: 48,
     height: 1.0,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle trayTimer = TextStyle(
@@ -149,7 +138,6 @@ class AppTypography {
     fontSize: 22,
     height: 28 / 22,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle wordmark = TextStyle(
@@ -158,7 +146,6 @@ class AppTypography {
     height: 32 / 28,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.0,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle titleBarWordmark = TextStyle(
@@ -167,6 +154,5 @@ class AppTypography {
     height: 1.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 2.0,
-    color: AppColors.textPrimary,
   );
 }

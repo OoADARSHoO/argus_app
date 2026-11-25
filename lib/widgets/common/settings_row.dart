@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 
 /// A standard row in the settings pages.
 /// Displays a title (Body SemiBold) and description (Caption, textSecondary) on the left,
@@ -27,10 +27,11 @@ class SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final border = showDivider
-        ? const Border(
+        ? Border(
             bottom: BorderSide(
-              color: AppColors.divider,
+              color: palette.divider,
               width: AppDimensions.borderWidth,
             ),
           )
@@ -47,9 +48,19 @@ class SettingsRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label, style: AppTypography.bodySemibold),
+            Text(
+              label,
+              style: AppTypography.bodySemibold.copyWith(
+                color: palette.textPrimary,
+              ),
+            ),
             const SizedBox(height: AppSpacing.s4),
-            Text(description, style: AppTypography.caption),
+            Text(
+              description,
+              style: AppTypography.caption.copyWith(
+                color: palette.textSecondary,
+              ),
+            ),
             const SizedBox(height: AppSpacing.s12),
             control,
           ],
@@ -73,12 +84,16 @@ class SettingsRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: AppTypography.bodySemibold,
+                  style: AppTypography.bodySemibold.copyWith(
+                    color: palette.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.s4),
                 Text(
                   description,
-                  style: AppTypography.caption,
+                  style: AppTypography.caption.copyWith(
+                    color: palette.textSecondary,
+                  ),
                 ),
               ],
             ),

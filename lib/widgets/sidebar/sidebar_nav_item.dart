@@ -4,6 +4,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Single item within the sidebar navigation.
 /// 160px wide by 40px high.
@@ -34,6 +35,7 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final activeAccent = widget.accentColor ?? AppColors.primary;
 
     final Color backgroundColor;
@@ -41,13 +43,14 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
 
     if (widget.isSelected) {
       backgroundColor = activeAccent.withValues(alpha: AppColors.activeOpacity);
-      foregroundColor = activeAccent;
+      // Light mode needs a darker version of the accent to stay readable.
+      foregroundColor = palette.accentText(activeAccent);
     } else if (_isHovered) {
-      backgroundColor = AppColors.surfaceElevated;
-      foregroundColor = AppColors.textPrimary;
+      backgroundColor = palette.surfaceElevated;
+      foregroundColor = palette.textPrimary;
     } else {
       backgroundColor = AppColors.transparent;
-      foregroundColor = AppColors.textSecondary;
+      foregroundColor = palette.textSecondary;
     }
 
     return MouseRegion(

@@ -5,6 +5,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/break_timer_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/settings_service.dart';
@@ -54,6 +55,8 @@ class _SettingsShellState extends State<SettingsShell> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return ListenableBuilder(
       listenable: Listenable.merge([
         widget.settingsService,
@@ -61,7 +64,7 @@ class _SettingsShellState extends State<SettingsShell> {
       ]),
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: palette.background,
           body: Column(
             children: [
               // Custom frameless Title Bar.
@@ -90,7 +93,7 @@ class _SettingsShellState extends State<SettingsShell> {
                     // Content page area
                     Expanded(
                       child: Container(
-                        color: AppColors.background,
+                        color: palette.background,
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(AppSpacing.windowPadding),
                           child: _buildCurrentPage(),
@@ -150,6 +153,7 @@ class _DebugTimerPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final phase = timer.phase;
 
     // Paused: show "Paused until HH:mm" instead of a countdown.
@@ -171,7 +175,7 @@ class _DebugTimerPanel extends StatelessWidget {
 
     return Container(
       height: AppDimensions.titleBarHeight * 2,
-      color: AppColors.surfaceElevated,
+      color: palette.surfaceElevated,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: Row(
         children: [
@@ -182,13 +186,13 @@ class _DebugTimerPanel extends StatelessWidget {
               vertical: AppSpacing.s4,
             ),
             decoration: BoxDecoration(
-              color: _phaseColor(phase),
+              color: _phaseColor(phase, palette),
               borderRadius: AppRadius.badgeRadius,
             ),
             child: Text(
               _phaseLabel(phase),
               style: AppTypography.caption.copyWith(
-                color: AppColors.textPrimary,
+                color: palette.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -199,7 +203,7 @@ class _DebugTimerPanel extends StatelessWidget {
           Text(
             countdownText,
             style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
 
@@ -208,7 +212,9 @@ class _DebugTimerPanel extends StatelessWidget {
             Text(
               'WARNING',
               style: AppTypography.caption.copyWith(
-                color: AppColors.warning,
+                // The bright amber status color is unreadable on light
+                // surfaces, so the palette provides a darker amber.
+                color: palette.warningText,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -248,14 +254,14 @@ class _DebugTimerPanel extends StatelessWidget {
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  Color _phaseColor(TimerPhase phase) {
+  Color _phaseColor(TimerPhase phase, AppPalette palette) {
     switch (phase) {
       case TimerPhase.working:
         return AppColors.primary.withValues(alpha: 0.15);
       case TimerPhase.breakTime:
         return AppColors.warning.withValues(alpha: 0.15);
       case TimerPhase.paused:
-        return AppColors.textTertiary.withValues(alpha: 0.15);
+        return palette.textTertiary.withValues(alpha: 0.15);
     }
   }
 
@@ -285,12 +291,14 @@ class _DebugButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return OutlinedButton(
       onPressed: enabled ? onPressed : null,
       style: OutlinedButton.styleFrom(
-        foregroundColor: enabled ? AppColors.textPrimary : AppColors.textDisabled,
+        foregroundColor: enabled ? palette.textPrimary : palette.textDisabled,
         side: BorderSide(
-          color: enabled ? AppColors.border : AppColors.textDisabled,
+          color: enabled ? palette.border : palette.textDisabled,
           width: AppDimensions.borderWidth,
         ),
         padding: const EdgeInsets.symmetric(
@@ -302,6 +310,7 @@ class _DebugButton extends StatelessWidget {
         label,
         style: AppTypography.caption.copyWith(
           fontSize: 11,
+          color: enabled ? palette.textPrimary : palette.textDisabled,
         ),
       ),
     );

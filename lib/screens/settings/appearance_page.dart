@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/accent_color.dart';
 import '../../models/appearance_settings.dart';
 import '../../services/settings_service.dart';
@@ -22,19 +23,20 @@ class AppearancePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final s = settings.settings.appearanceSettings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Page header
-        const Text(
+        Text(
           'Appearance',
-          style: AppTypography.heading2,
+          style: AppTypography.heading2.copyWith(color: palette.textPrimary),
         ),
         const SizedBox(height: AppSpacing.s4),
-        const Text(
+        Text(
           'Change how Argus looks.',
-          style: AppTypography.caption,
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.s24),
 

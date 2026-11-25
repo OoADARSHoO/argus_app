@@ -4,6 +4,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../icons/app_icons.dart';
 
 /// Selectable card for Dark, Light, or System theme options.
@@ -28,23 +29,35 @@ class ThemeOptionCard extends StatelessWidget {
   final double width;
   final double height;
 
+  /// Previews always show their own theme, never the currently active one.
+  /// That is why they use the fixed `AppPalette.dark` / `AppPalette.light`
+  /// constants instead of `context.palette`.
   Widget _buildDefaultPreview() {
     final lower = label.toLowerCase();
     if (lower.contains('dark')) {
       return Container(
-        decoration: const BoxDecoration(
-          color: AppColors.background,
+        decoration: BoxDecoration(
+          color: AppPalette.dark.background,
           borderRadius: AppRadius.borderR4,
           border: Border.fromBorderSide(
-            BorderSide(color: AppColors.border, width: AppDimensions.borderWidth),
+            BorderSide(
+              color: AppPalette.dark.border,
+              width: AppDimensions.borderWidth,
+            ),
           ),
         ),
       );
     } else if (lower.contains('light')) {
       return Container(
-        decoration: const BoxDecoration(
-          color: AppColors.textPrimary,
+        decoration: BoxDecoration(
+          color: AppPalette.light.background,
           borderRadius: AppRadius.borderR4,
+          border: Border.fromBorderSide(
+            BorderSide(
+              color: AppPalette.light.border,
+              width: AppDimensions.borderWidth,
+            ),
+          ),
         ),
       );
     } else {
@@ -52,18 +65,21 @@ class ThemeOptionCard extends StatelessWidget {
       // same size as the Dark and Light previews.
       return Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [
-              AppColors.background,
-              AppColors.background,
-              AppColors.textPrimary,
-              AppColors.textPrimary,
+              AppPalette.dark.background,
+              AppPalette.dark.background,
+              AppPalette.light.background,
+              AppPalette.light.background,
             ],
-            stops: [0.0, 0.5, 0.5, 1.0],
+            stops: const [0.0, 0.5, 0.5, 1.0],
           ),
           borderRadius: AppRadius.borderR4,
           border: Border.fromBorderSide(
-            BorderSide(color: AppColors.border, width: AppDimensions.borderWidth),
+            BorderSide(
+              color: AppPalette.dark.border,
+              width: AppDimensions.borderWidth,
+            ),
           ),
         ),
       );
@@ -72,6 +88,7 @@ class ThemeOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final activeAccent = accentColor ?? AppColors.primary;
 
     return MouseRegion(
@@ -84,10 +101,10 @@ class ThemeOptionCard extends StatelessWidget {
           height: height,
           padding: const EdgeInsets.all(AppSpacing.s8),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: palette.surface,
             borderRadius: AppRadius.cardRadius,
             border: Border.all(
-              color: isSelected ? activeAccent : AppColors.border,
+              color: isSelected ? activeAccent : palette.border,
               width: AppDimensions.borderWidth,
             ),
           ),
@@ -126,8 +143,8 @@ class ThemeOptionCard extends StatelessWidget {
                 label,
                 style: AppTypography.caption.copyWith(
                   color: isSelected
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary,
+                      ? palette.textPrimary
+                      : palette.textSecondary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),

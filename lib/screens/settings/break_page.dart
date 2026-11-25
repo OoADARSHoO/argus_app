@@ -4,6 +4,7 @@ import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/common/app_dropdown.dart';
 import '../../widgets/common/app_text_input.dart';
@@ -43,19 +44,20 @@ class BreakPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final s = settings.settings.breakSettings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Page header
-        const Text(
+        Text(
           'Break',
-          style: AppTypography.heading2,
+          style: AppTypography.heading2.copyWith(color: palette.textPrimary),
         ),
         const SizedBox(height: AppSpacing.s4),
-        const Text(
+        Text(
           'Customize your break experience.',
-          style: AppTypography.caption,
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.s24),
 
@@ -171,13 +173,15 @@ class _TextColorPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return PopupMenuButton<Color>(
       tooltip: 'Choose text color',
-      color: AppColors.surfaceElevated,
-      shape: const RoundedRectangleBorder(
+      color: palette.surfaceElevated,
+      shape: RoundedRectangleBorder(
         borderRadius: AppRadius.borderR8,
         side: BorderSide(
-          color: AppColors.border,
+          color: palette.border,
           width: AppDimensions.borderWidth,
         ),
       ),
@@ -197,7 +201,7 @@ class _TextColorPicker extends StatelessWidget {
                     color: opt.color,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.border,
+                      color: palette.border,
                       width: AppDimensions.borderWidth,
                     ),
                   ),
@@ -208,8 +212,8 @@ class _TextColorPicker extends StatelessWidget {
                     opt.name,
                     style: AppTypography.body.copyWith(
                       color: isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                          ? palette.textPrimary
+                          : palette.textSecondary,
                     ),
                   ),
                 ),
@@ -231,7 +235,7 @@ class _TextColorPicker extends StatelessWidget {
           color: currentColor,
           borderRadius: AppRadius.borderR4,
           border: Border.all(
-            color: AppColors.border,
+            color: palette.border,
             width: AppDimensions.borderWidth,
           ),
         ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/settings_service.dart';
 import '../../services/update_service.dart';
 import '../../utils/version.dart';
@@ -23,18 +23,21 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final accentText = palette.accentText(settings.accentColor);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Page header
-        const Text(
+        Text(
           'About Argus',
-          style: AppTypography.heading2,
+          style: AppTypography.heading2.copyWith(color: palette.textPrimary),
         ),
         const SizedBox(height: AppSpacing.s4),
-        const Text(
+        Text(
           'Know more about the app.',
-          style: AppTypography.caption,
+          style: AppTypography.caption.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(height: AppSpacing.s24),
 
@@ -55,9 +58,11 @@ class AboutPage extends StatelessWidget {
               const SizedBox(height: AppSpacing.s12),
 
               // Product Wordmark
-              const Text(
+              Text(
                 'ARGUS',
-                style: AppTypography.wordmark,
+                style: AppTypography.wordmark.copyWith(
+                  color: palette.textPrimary,
+                ),
               ),
               const SizedBox(height: AppSpacing.s4),
 
@@ -65,16 +70,18 @@ class AboutPage extends StatelessWidget {
               Text(
                 'Version $appVersion',
                 style: AppTypography.caption.copyWith(
-                  color: settings.accentColor,
+                  color: accentText,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: AppSpacing.s4),
 
               // Tagline
-              const Text(
+              Text(
                 '20-20-20 made simple.',
-                style: AppTypography.bodySecondary,
+                style: AppTypography.bodySecondary.copyWith(
+                  color: palette.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.s4),
 
@@ -89,7 +96,7 @@ class AboutPage extends StatelessWidget {
                   return Text(
                     _statusText(updateService),
                     style: AppTypography.caption.copyWith(
-                      color: settings.accentColor,
+                      color: accentText,
                       fontWeight: FontWeight.w600,
                     ),
                   );
@@ -131,6 +138,7 @@ class AboutPage extends StatelessWidget {
                   'Argus helps you follow the 20-20-20 rule by blocking your screen for 20 seconds every 20 minutes so you can rest your eyes, refocus, and stay productive.',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodySecondary.copyWith(
+                    color: palette.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -145,23 +153,34 @@ class AboutPage extends StatelessWidget {
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: () {},
-                      child: const Text(
+                      child: Text(
                         'Privacy Policy',
-                        style: AppTypography.caption,
+                        style: AppTypography.caption.copyWith(
+                          color: palette.textSecondary,
+                        ),
                       ),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.s8),
-                    child: Text('•', style: AppTypography.caption),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s8,
+                    ),
+                    child: Text(
+                      '•',
+                      style: AppTypography.caption.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
                   ),
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: () {},
-                      child: const Text(
+                      child: Text(
                         'Terms of Use',
-                        style: AppTypography.caption,
+                        style: AppTypography.caption.copyWith(
+                          color: palette.textSecondary,
+                        ),
                       ),
                     ),
                   ),
@@ -173,7 +192,7 @@ class AboutPage extends StatelessWidget {
               Text(
                 '© 2025 BITEKOI LABS. All rights reserved.',
                 style: AppTypography.small.copyWith(
-                  color: AppColors.textTertiary,
+                  color: palette.textTertiary,
                 ),
               ),
               const SizedBox(height: AppSpacing.s16),
